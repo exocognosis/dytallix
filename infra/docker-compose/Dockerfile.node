@@ -1,0 +1,14 @@
+FROM rust:1.78-bullseye AS builder
+WORKDIR /workspace
+COPY dytallix-lean-launch ./dytallix-lean-launch
+COPY blockchain-core ./blockchain-core
+COPY pqc-crypto ./pqc-crypto
+RUN cd dytallix-lean-launch && cargo build --locked --release -p dytallix-lean-node
+
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl jq && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /workspace/dytallix-lean-launch/target/release/dytallix-lean-node /usr/local/bin/dytallix-lean-node
+ENV HOME=/var/lib/dytallix
+WORKDIR /var/lib/dytallix
+EXPOSE 3030 9464
+ENTRYPOINT ["dytallix-lean-node"]

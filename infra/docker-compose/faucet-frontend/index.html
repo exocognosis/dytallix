@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dytallix Testnet Faucet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #ffffff;
+        }
+        
+        .container {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .container:hover {
+            background: #1f2937;
+            border-color: #06b6d4;
+            box-shadow: 0 25px 50px rgba(6, 182, 212, 0.1);
+        }
+        
+        .header {
+            margin-bottom: 32px;
+        }
+        
+        .logo {
+            font-size: 2.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #34d399 0%, #2dd4bf 50%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        .logo::before {
+            content: "🚰";
+            font-size: 0.8em;
+            -webkit-text-fill-color: initial;
+        }
+        
+        .subtitle {
+            color: #d1d5db;
+            margin-bottom: 24px;
+            font-size: 1.1em;
+            font-weight: 400;
+        }
+        
+        .info-box {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 24px 0;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        
+        .info-box:hover {
+            background: #1f2937;
+            border-color: #06b6d4;
+        }
+        
+        .info-title {
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 16px;
+            font-size: 1.1em;
+        }
+        
+        .token-info {
+            margin-bottom: 16px;
+        }
+        
+        .token-info:last-child {
+            margin-bottom: 12px;
+        }
+        
+        .token-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        
+        .token-details {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin-left: 24px;
+        }
+        
+        .rate-limits {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 12px;
+            margin-top: 16px;
+        }
+        
+        .input-group {
+            margin: 24px 0;
+            text-align: left;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 16px;
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            font-size: 16px;
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group input::placeholder {
+            color: #9ca3af;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #06b6d4;
+            background: #1f2937;
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+        
+        .btn {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 18px 36px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 24px 0;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn:hover {
+            background: #047857;
+            transform: translateY(-2px);
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 500;
+            text-align: left;
+        }
+        
+        .status.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .status.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .status.loading {
+            background: rgba(6, 182, 212, 0.15);
+            color: #06b6d4;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+        
+        .network-status {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin: 16px 0;
+            font-size: 14px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .network-status.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .footer {
+            margin-top: 32px;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: #06b6d4;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer a:hover {
+            color: #2dd4bf;
+        }
+        
+        .transaction-item {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        
+        .transaction-hash {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #06b6d4;
+            word-break: break-all;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px;
+                margin: 10px;
+            }
+            
+            .logo {
+                font-size: 2.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Dytallix Faucet</div>
+            <div class="subtitle">Get DGT & DRT tokens for development</div>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-title">Dual Token System</div>
+            
+            <div class="token-info">
+                <div class="token-header">
+                    <span>🏛️</span>
+                    <strong>DGT (Governance)</strong>: 10 DGT per request
+                </div>
+                <div class="token-details">
+                    • For voting and protocol decisions<br>
+                    • Fixed supply (1B DGT total)
+                </div>
+            </div>
+            
+            <div class="token-info">
+                <div class="token-header">
+                    <span>💰</span>
+                    <strong>DRT (Rewards)</strong>: 100 DRT per request
+                </div>
+                <div class="token-details">
+                    • For staking rewards and transaction fees<br>
+                    • Inflationary supply (~6% annual)
+                </div>
+            </div>
+            
+            <div class="rate-limits">
+                • Cooldown: <strong>30 minutes</strong> • Rate limit: <strong>5 requests/hour</strong>
+            </div>
+        </div>
+        
+        <div class="network-status" id="networkStatus">
+            🔄 Checking network status...
+        </div>
+        
+        <form id="faucetForm">
+            <div class="input-group">
+                <label for="address">Dytallix Address</label>
+                <input 
+                    type="text" 
+                    id="address" 
+                    name="address" 
+                    placeholder="dyt1..." 
+                    required
+                    pattern="dyt1[a-z0-9]{38,59}"
+                    title="Enter a valid Dytallix address starting with 'dyt1'"
+                />
+            </div>
+            
+            <div class="input-group">
+                <label for="tokenType">Token Type</label>
+                <select id="tokenType" name="tokenType">
+                    <option value="both">🎯 Both DGT + DRT (Recommended)</option>
+                    <option value="DGT">🏛️ DGT Only (Governance)</option>
+                    <option value="DRT">💰 DRT Only (Rewards)</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn" id="requestBtn">
+                Request Test Tokens
+            </button>
+        </form>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div class="footer">
+            <p>Build amazing dApps on Dytallix! 🚀</p>
+            <p><a href="https://github.com/dytallix" target="_blank">Documentation</a> • 
+               <a href="#" onclick="showApiDocs()">API Docs</a></p>
+        </div>
+    </div>
+
+    <script>
+        let cooldownTimer = null;
+        
+        // Check network status on load
+        window.addEventListener('load', checkNetworkStatus);
+        
+        async function checkNetworkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const statusEl = document.getElementById('networkStatus');
+                if (response.ok && data.status === 'operational') {
+                    const blockHeight = data.network?.blockHeight || 'Unknown';
+                    statusEl.innerHTML = `✅ Network operational • Block: ${blockHeight} • DGT: ${data.faucetBalance?.DGT?.formatted} • DRT: ${data.faucetBalance?.DRT?.formatted}`;
+                    statusEl.className = 'network-status';
+                } else {
+                    throw new Error('Network not ready');
+                }
+            } catch (error) {
+                // Fallback to health endpoint
+                try {
+                    const healthResponse = await fetch('/api/health');
+                    const healthData = await healthResponse.json();
+                    const statusEl = document.getElementById('networkStatus');
+                    
+                    if (healthResponse.ok && healthData.status === 'healthy') {
+                        statusEl.innerHTML = '✅ Network is healthy and ready';
+                        statusEl.className = 'network-status';
+                    } else {
+                        throw new Error('Health check failed');
+                    }
+                } catch (healthError) {
+                    const statusEl = document.getElementById('networkStatus');
+                    statusEl.innerHTML = '⚠️ Network status unknown - API may be starting up';
+                    statusEl.className = 'network-status error';
+                }
+            }
+        }
+        
+        document.getElementById('faucetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const address = document.getElementById('address').value.trim();
+            const tokenType = document.getElementById('tokenType').value;
+            const statusEl = document.getElementById('status');
+            const submitBtn = document.getElementById('requestBtn');
+            
+            // Validate address format
+            if (!address.match(/^dyt1[a-z0-9]{38,59}$/)) {
+                showStatus('Please enter a valid Dytallix address starting with "dyt1"', 'error');
+                return;
+            }
+            
+            // Disable form and show loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Requesting tokens...';
+            showStatus(`Sending ${tokenType === 'both' ? 'DGT + DRT' : tokenType} tokens to your address...`, 'loading');
+            
+            try {
+                const response = await fetch('/api/faucet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ address, tokenType })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let successMessage = '✅ Success! ';
+                    if (data.transactions && Array.isArray(data.transactions)) {
+                        const txDetails = data.transactions.map(tx => 
+                            `${tx.amountFormatted} (${tx.txHash.substring(0, 8)}...)`
+                        ).join(', ');
+                        successMessage += `Sent ${txDetails} to ${address}`;
+                        
+                        // Show transaction details
+                        let txHtml = successMessage + '<br><br><strong>Transaction Details:</strong><br>';
+                        data.transactions.forEach(tx => {
+                            txHtml += `<div class="transaction-item">
+                                <strong>${tx.token}</strong>: ${tx.amountFormatted}<br>
+                                <small>TX: <span class="transaction-hash">${tx.txHash}</span></small><br>
+                                <small>Purpose: ${tx.purpose}</small>
+                            </div>`;
+                        });
+                        showStatus(txHtml, 'success', true);
+                    } else {
+                        successMessage += `Sent ${tokenType} tokens to ${address}`;
+                        showStatus(successMessage, 'success');
+                    }
+                    document.getElementById('address').value = '';
+                    startCooldown();
+                } else {
+                    showStatus(`❌ Error: ${data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            } finally {
+                if (!cooldownTimer) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Request Test Tokens';
+                }
+            }
+        });
+        
+        function showStatus(message, type, isHtml = false) {
+            const statusEl = document.getElementById('status');
+            if (isHtml) {
+                statusEl.innerHTML = message;
+            } else {
+                statusEl.textContent = message;
+            }
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+        
+        function startCooldown() {
+            const submitBtn = document.getElementById('requestBtn');
+            let seconds = 1800; // 30 minutes
+            
+            submitBtn.disabled = true;
+            
+            cooldownTimer = setInterval(() => {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                submitBtn.textContent = `Wait ${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                
+                seconds--;
+                
+                if (seconds < 0) {
+                    clearInterval(cooldownTimer);
+                    cooldownTimer = null;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Request Test Tokens';
+                }
+            }, 1000);
+        }
+        
+        function showApiDocs() {
+            alert(`Dytallix Dual Token Faucet API Documentation:
+
+POST /api/faucet
+- Request DGT and/or DRT test tokens
+- Body: {"address": "dyt1...", "tokenType": "both|DGT|DRT"}
+- Tokens: DGT (governance), DRT (rewards)
+- Amounts: 10 DGT, 100 DRT per request
+- Rate limited: 5 requests per hour per IP
+
+GET /api/status
+- Check faucet service and network status
+- Returns dual token balance information
+
+GET /api/balance/:address
+- Check DGT and DRT balance for an address
+- Returns both token balances and voting power
+
+GET /api/info
+- Get faucet configuration and tokenomics info
+- Shows dual token system details
+
+Base URL: ${window.location.origin}/api`);
+        }
+        
+        // Auto-refresh network status every 30 seconds
+        setInterval(checkNetworkStatus, 30000);
+    </script>
+</body>
+</html>

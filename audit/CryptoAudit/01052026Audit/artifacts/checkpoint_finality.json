@@ -1,0 +1,38 @@
+[
+  {
+    "rule": "Supermajority requirement",
+    "tested": true,
+    "satisfied": true,
+    "description": "Checkpoint requires 67+ of 100 validators"
+  },
+  {
+    "rule": "Irreversibility",
+    "tested": true,
+    "satisfied": true,
+    "description": "Finalized checkpoints cannot be reverted"
+  },
+  {
+    "rule": "Linear checkpoint chain",
+    "tested": true,
+    "satisfied": true,
+    "description": "No forks in checkpoint chain"
+  },
+  {
+    "rule": "Checkpoint interval bounds",
+    "tested": true,
+    "satisfied": true,
+    "description": "Interval between 100 and 1000 blocks"
+  },
+  {
+    "rule": "State root inclusion",
+    "tested": true,
+    "satisfied": true,
+    "description": "Checkpoint includes valid 256-bit state root"
+  },
+  {
+    "rule": "Equivocation slashing",
+    "tested": true,
+    "satisfied": true,
+    "description": "Validators signing conflicting checkpoints are slashed"
+  }
+]

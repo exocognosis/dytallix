@@ -1,0 +1,40 @@
+{
+  "network": "osmosis-testnet",
+  "deploymentStatus": "ready",
+  "preparationTimestamp": "2024-07-25T01:15:00.000Z",
+  "buildInfo": {
+    "contractSize": 316475,
+    "rustVersion": "1.88.0",
+    "cosmwasmVersion": "1.5",
+    "wasmTarget": "wasm32-unknown-unknown"
+  },
+  "configuration": {
+    "rpcEndpoint": "https://osmosis-testnet-rpc.polkachu.com",
+    "chainId": "osmo-test-5",
+    "gasPrice": "0.025uosmo",
+    "validatorThreshold": 3,
+    "bridgeFeeBps": 10
+  },
+  "deployment": {
+    "codeId": null,
+    "contractAddress": null,
+    "admin": null,
+    "transactions": {
+      "upload": null,
+      "instantiate": null,
+      "configure": null
+    }
+  },
+  "features": [
+    "asset-locking",
+    "multi-signature-validation", 
+    "admin-controls",
+    "fee-management",
+    "emergency-pause"
+  ],
+  "supportedAssets": [
+    "uosmo"
+  ],
+  "validators": [],
+  "notes": "Deployment infrastructure ready. Pending wallet funding for live deployment."
+}

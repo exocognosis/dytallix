@@ -1,0 +1,23 @@
+# VCS / OS
+.git/
+.DS_Store
+
+# Rust build artifacts (huge)
+**/target/**
+**/*.o
+**/*.rcgu.o
+**/*.rlib
+**/*.rmeta
+
+# Node
+**/node_modules/**
+
+# Misc caches
+**/__pycache__/**
+**/.pytest_cache/**
+
+# Logs and archives
+**/*.log
+**/*.tgz
+**/*.tar.gz
+**/*.zip

@@ -1,0 +1,20 @@
+{{- if and .Values.rpc.enabled .Values.rpc.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dytallix.fullname" . }}-rpc
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dytallix.fullname" . }}-rpc
+  minReplicas: {{ .Values.rpc.hpa.minReplicas }}
+  maxReplicas: {{ .Values.rpc.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.rpc.hpa.targetCPUUtilizationPercentage }}
+{{- end }}

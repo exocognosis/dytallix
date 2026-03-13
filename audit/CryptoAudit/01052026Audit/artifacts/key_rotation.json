@@ -1,0 +1,32 @@
+[
+  {
+    "property": "Backward compatibility",
+    "tested": true,
+    "correct": true,
+    "description": "Old key signatures valid during rotation window"
+  },
+  {
+    "property": "Forward compatibility",
+    "tested": true,
+    "correct": true,
+    "description": "New key active immediately after rotation"
+  },
+  {
+    "property": "Deterministic derivation",
+    "tested": true,
+    "correct": true,
+    "description": "Same seed produces same derived keys"
+  },
+  {
+    "property": "Key independence",
+    "tested": true,
+    "correct": true,
+    "description": "Different key purposes yield different keys"
+  },
+  {
+    "property": "Rotation atomicity",
+    "tested": true,
+    "correct": true,
+    "description": "Key rotation is atomic operation"
+  }
+]

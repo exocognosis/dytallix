@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  dytallix-website:
+    build:
+      context: /root/dytallix-website
+      dockerfile: docker-compose/Dockerfile.website
+    container_name: dytallix-website
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - dytallix-network
+    depends_on:
+      - dytallix-faucet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - /root/dytallix-website/faucet-frontend:/usr/share/nginx/html/faucet
+
+networks:
+  dytallix-network:
+    external: true

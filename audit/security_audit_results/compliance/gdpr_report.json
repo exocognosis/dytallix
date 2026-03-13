@@ -1,0 +1,23 @@
+{
+  "framework": "GDPR Data Protection",
+  "assessment_date": "2025-07-27T00:39:18.358581",
+  "findings": [],
+  "requirements": {
+    "data_protection_by_design": {
+      "status": "Partial",
+      "score": 70
+    },
+    "encryption": {
+      "status": "Implemented",
+      "score": 80
+    },
+    "access_controls": {
+      "status": "Partial",
+      "score": 75
+    },
+    "audit_trail": {
+      "status": "Implemented",
+      "score": 85
+    }
+  }
+}

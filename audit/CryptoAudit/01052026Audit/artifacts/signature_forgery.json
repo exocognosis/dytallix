@@ -1,0 +1,16 @@
+[
+  {
+    "algorithm": "ML-DSA-65",
+    "forgery_attempts": 10000,
+    "successful_forgeries": 0,
+    "computational_cost_log2": 182.0,
+    "feasibility": "Infeasible"
+  },
+  {
+    "algorithm": "SLH-DSA-SHAKE-192s",
+    "forgery_attempts": 10000,
+    "successful_forgeries": 0,
+    "computational_cost_log2": 192.0,
+    "feasibility": "Infeasible"
+  }
+]

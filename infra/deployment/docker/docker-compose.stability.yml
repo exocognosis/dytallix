@@ -1,0 +1,63 @@
+services:
+  dyt-stability-validator-0:
+    image: dytallix:testnet
+    container_name: dyt-stability-validator-0
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-validator-0
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3100:3030"
+      - "9564:9464"
+    networks: [dytallix_stability]
+  dyt-stability-validator-1:
+    image: dytallix:testnet
+    container_name: dyt-stability-validator-1
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-validator-1
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3102:3030"
+      - "9565:9464"
+    networks: [dytallix_stability]
+  dyt-stability-validator-2:
+    image: dytallix:testnet
+    container_name: dyt-stability-validator-2
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-validator-2
+      DYTALLIX_VALIDATOR: "true"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3104:3030"
+      - "9566:9464"
+    networks: [dytallix_stability]
+  dyt-stability-rpc-0:
+    image: dytallix:testnet
+    container_name: dyt-stability-rpc-0
+    environment:
+      DYTALLIX_ENVIRONMENT: testnet
+      DYTALLIX_NODE_ID: stability-rpc-0
+      DYTALLIX_VALIDATOR: "false"
+      DYTALLIX_LOG_LEVEL: info
+      DYTALLIX_METRICS_ENABLED: "true"
+      DY_METRICS: "1"
+      DY_METRICS_ADDR: "0.0.0.0:9464"
+    ports:
+      - "3110:3030"
+      - "9570:9464"
+    networks: [dytallix_stability]
+networks:
+  dytallix_stability: { driver: bridge }

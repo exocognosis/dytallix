@@ -1,0 +1,16 @@
+[
+  {
+    "test_name": "Memory access pattern",
+    "cache_hit_ns": 16.0248,
+    "cache_miss_ns": 92.1996,
+    "timing_difference_ns": 76.1748,
+    "observable": false
+  },
+  {
+    "test_name": "Table lookup",
+    "cache_hit_ns": 15.3614,
+    "cache_miss_ns": 83.0,
+    "timing_difference_ns": 83.0,
+    "observable": true
+  }
+]

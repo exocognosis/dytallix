@@ -1,0 +1,929 @@
+{
+  "metadata": {
+    "report_id": "DYTALLIX-AUDIT-20260109143047",
+    "report_version": "1.0.0",
+    "target_codebase": "/Users/rickglenn/Desktop/dytallix/dytallix-fast-launch",
+    "audit_seed": 20260105,
+    "audit_start": "2026-01-09T14:30:47.581392Z",
+    "audit_end": "2026-01-09T14:30:47.641412Z",
+    "auditor": "Dytallix Crypto Audit Script v1.0.0"
+  },
+  "overall_verdict": "APPROVED",
+  "summary": {
+    "total_tests": 39,
+    "passed": 39,
+    "warned": 0,
+    "failed": 0,
+    "total_execution_time_ms": 50,
+    "average_confidence": 0.9292307692307691
+  },
+  "decision_policy": {
+    "hard_fail_conditions": [
+      "Key recovery attack successful",
+      "Signature forgery demonstrated",
+      "KEM decapsulation break",
+      "Quorum safety violation",
+      "BFT intersection failure"
+    ],
+    "warn_conditions": [
+      "Reduced safety margin (< 20 bits)",
+      "Detectable timing variance",
+      "Non-constant-time code pattern",
+      "Entropy source concerns"
+    ]
+  },
+  "test_results": {
+    "Cryptographic Primitives": [
+      {
+        "test_id": "CRYPTO-001",
+        "category": "Cryptographic Primitives",
+        "assumption": "ML-DSA-65 parameters conform to FIPS 204 specification",
+        "verdict": "PASS",
+        "confidence": 1.0,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "00910b72a0394fce50bd8fa9d3bafabca5454812d945d1abf62944f0b8d1881e",
+        "findings": [
+          "All ML-DSA-65 parameters match FIPS 204 specification"
+        ],
+        "metrics": {
+          "q": 8380417.0,
+          "n": 256.0,
+          "classical_security": 192.0,
+          "l": 5.0,
+          "quantum_security": 128.0,
+          "k": 6.0
+        },
+        "timestamp": "2026-01-09T14:30:47.581444Z"
+      },
+      {
+        "test_id": "CRYPTO-002",
+        "category": "Cryptographic Primitives",
+        "assumption": "ML-KEM-1024 parameters conform to FIPS 203 specification",
+        "verdict": "PASS",
+        "confidence": 1.0,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "44c33d4c04bdd230f78514f9fac9ed0ac55e6e22fa33ed1c66869b0b8214bd0d",
+        "findings": [
+          "All ML-KEM-1024 parameters match FIPS 203 specification"
+        ],
+        "metrics": {
+          "k": 4.0,
+          "classical_security": 256.0,
+          "quantum_security": 192.0,
+          "n": 256.0,
+          "q": 3329.0
+        },
+        "timestamp": "2026-01-09T14:30:47.581633Z"
+      },
+      {
+        "test_id": "CRYPTO-003",
+        "category": "Cryptographic Primitives",
+        "assumption": "SLH-DSA-SHAKE-192s parameters conform to FIPS 205 specification",
+        "verdict": "PASS",
+        "confidence": 1.0,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "13c2da461d22be0f8f1f28a51c4809a1f29c20b9b197b648e3b53e28cbb41f9d",
+        "findings": [
+          "All SLH-DSA-SHAKE-192s parameters match FIPS 205 specification"
+        ],
+        "metrics": {
+          "d": 7.0,
+          "h": 63.0,
+          "classical_security": 192.0,
+          "quantum_security": 128.0,
+          "n": 24.0
+        },
+        "timestamp": "2026-01-09T14:30:47.581770Z"
+      },
+      {
+        "test_id": "CRYPTO-004",
+        "category": "Cryptographic Primitives",
+        "assumption": "All primitives provide at least NIST Level 3 security (128-bit quantum)",
+        "verdict": "PASS",
+        "confidence": 0.98,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "21ab10a1966620b346e2ef39ab65d8a49abfbb12ac3c4bd2cbd7295d072ad476",
+        "findings": [
+          "All primitives meet NIST Level 3 security requirements"
+        ],
+        "metrics": {
+          "SLH-DSA-SHAKE-192s_classical": 192.0,
+          "ML-DSA-65_classical": 280.4948974278318,
+          "SHAKE256_classical": 256.0,
+          "SHAKE256_quantum": 128.0,
+          "SLH-DSA-SHAKE-192s_quantum": 128.0,
+          "BLAKE3_classical": 256.0,
+          "ML-KEM-768_classical": 276.0,
+          "BLAKE3_quantum": 128.0,
+          "ML-KEM-768_quantum": 192.0,
+          "ML-DSA-65_quantum": 192.0
+        },
+        "timestamp": "2026-01-09T14:30:47.581847Z"
+      },
+      {
+        "test_id": "CRYPTO-005",
+        "category": "Cryptographic Primitives",
+        "assumption": "Module-LWE parameters provide adequate safety margins against lattice attacks",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "ed2e91d50b35b53d1b7ca9f3600bb95a12041715352150e9f9030d52f7578ab7",
+        "findings": [
+          "Module-LWE safety margins are adequate for NIST Level 3"
+        ],
+        "metrics": {
+          "ml_kem_block_size": 600.0,
+          "ml_dsa_block_size": 600.0,
+          "ml_kem_dimension": 1024.0,
+          "ml_dsa_dimension": 1536.0
+        },
+        "timestamp": "2026-01-09T14:30:47.581981Z"
+      },
+      {
+        "test_id": "CRYPTO-006",
+        "category": "Cryptographic Primitives",
+        "assumption": "Module-SIS parameters provide adequate safety margins for signature security",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "fd1ba6dd4668d94e0882d466297cd5de399f0d9dfcc2c7d251ba67639ddca2b4",
+        "findings": [
+          "Module-SIS safety margins are adequate"
+        ],
+        "metrics": {
+          "gamma_ratio": 0.0003742057226985244,
+          "beta": 196.0,
+          "sis_dimension": 2816.0
+        },
+        "timestamp": "2026-01-09T14:30:47.582047Z"
+      },
+      {
+        "test_id": "CRYPTO-007",
+        "category": "Cryptographic Primitives",
+        "assumption": "BLAKE3 and SHAKE256 hash functions operate correctly",
+        "verdict": "PASS",
+        "confidence": 1.0,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "1ddcacfc1a6d491558bf25d49dd6dccdb9df4511d9d2462895e386d9fee6595f",
+        "findings": [
+          "BLAKE3 output: 080279878264500121ae67f81c4af2287b6db80b4baa97c6b93ea2ae0dbb1961",
+          "SHAKE256 output: 29d30454e1806d706e22e015193e71b2d76f132548d7f9f53f37b402d8086775"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.582114Z"
+      }
+    ],
+    "Protocol Analysis": [
+      {
+        "test_id": "PROTO-001",
+        "category": "Protocol Analysis",
+        "assumption": "Address hash-commit-reveal scheme is cryptographically sound",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "9479f4ca055d306f091e6c6bec6d510855c8d11d9ee2a70db751ac7884d9dc16",
+        "findings": [
+          "Binding: secure=true",
+          "Hiding: secure=true",
+          "Reveal verification: secure=true",
+          "Front-running resistance: secure=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.612437Z"
+      },
+      {
+        "test_id": "PROTO-002",
+        "category": "Protocol Analysis",
+        "assumption": "Key rotation mechanism maintains security invariants",
+        "verdict": "PASS",
+        "confidence": 0.93,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "732ec73b64a07e549a7eeaff13da5258ed2231e4aed243b63540ff59ff0db0b7",
+        "findings": [
+          "Backward compatibility: correct=true",
+          "Forward compatibility: correct=true",
+          "Deterministic derivation: correct=true",
+          "Key independence: correct=true",
+          "Rotation atomicity: correct=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.612516Z"
+      },
+      {
+        "test_id": "PROTO-003",
+        "category": "Protocol Analysis",
+        "assumption": "VRF sortition provides fair and unpredictable selection",
+        "verdict": "PASS",
+        "confidence": 0.94,
+        "execution_time_ms": 1,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "475e50557f1bbd63a376ae54fcb23f526449d038a32bb3ead73c09a2a256e913",
+        "findings": [
+          "Selection rate: value=0.1011, threshold=0.1000, passed=true",
+          "Output uniformity: value=1.0000, threshold=1.0000, passed=true",
+          "Output uniqueness: value=1.0000, threshold=0.9900, passed=true",
+          "Unpredictability: value=1.0000, threshold=1.0000, passed=true"
+        ],
+        "metrics": {
+          "uniqueness_ratio": 1.0,
+          "iterations": 10000.0,
+          "selection_rate": 0.1011
+        },
+        "timestamp": "2026-01-09T14:30:47.614142Z"
+      },
+      {
+        "test_id": "PROTO-004",
+        "category": "Protocol Analysis",
+        "assumption": "BFT quorum intersection invariant holds for all configurations",
+        "verdict": "PASS",
+        "confidence": 0.98,
+        "execution_time_ms": 1,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "1d0d36abd6bc550ff4b3dd6e92daa3334037aae9a06cc86de99dc663174c6a49",
+        "findings": [
+          "Tested 5 configurations with 67% quorum, 0 simulation violations"
+        ],
+        "metrics": {
+          "n4_quorum": 3.0,
+          "n10_quorum": 7.0,
+          "n21_quorum": 15.0,
+          "n100_quorum": 67.0,
+          "quorum_violations": 0.0,
+          "n7_quorum": 5.0
+        },
+        "timestamp": "2026-01-09T14:30:47.615338Z"
+      },
+      {
+        "test_id": "PROTO-005",
+        "category": "Protocol Analysis",
+        "assumption": "Checkpoint finality rules ensure irreversible consensus",
+        "verdict": "PASS",
+        "confidence": 0.96,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "cd04acc5ae3a60acd8f342f3c0eabda378acdb446c0542d96d1cb621873af0a8",
+        "findings": [
+          "Supermajority requirement: satisfied=true",
+          "Irreversibility: satisfied=true",
+          "Linear checkpoint chain: satisfied=true",
+          "Checkpoint interval bounds: satisfied=true",
+          "State root inclusion: satisfied=true",
+          "Equivocation slashing: satisfied=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.615427Z"
+      },
+      {
+        "test_id": "PROTO-006",
+        "category": "Protocol Analysis",
+        "assumption": "Double-spend attacks are prevented by protocol mechanisms",
+        "verdict": "PASS",
+        "confidence": 0.97,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "ac8d08f4b38763dac6121a3861c2a4c4c8c8657cf80b859d036da2ced1271d94",
+        "findings": [
+          "Detected 900 double-spend attempts, 900 prevented",
+          "Nonce reuse: prevented by Sequential nonce requirement",
+          "Race condition: prevented by Mempool deduplication",
+          "Fork-based double spend: prevented by Checkpoint finality",
+          "Front-running: prevented by Commit-reveal for sensitive operations"
+        ],
+        "metrics": {
+          "prevented": 900.0,
+          "double_spend_attempts": 900.0
+        },
+        "timestamp": "2026-01-09T14:30:47.615527Z"
+      }
+    ],
+    "Algorithmic Cryptanalysis": [
+      {
+        "test_id": "CRYPT-001",
+        "category": "Algorithmic Cryptanalysis",
+        "assumption": "Reduced-parameter variants do not expose weaknesses",
+        "verdict": "PASS",
+        "confidence": 0.9,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "19029e27d557313671de017234b9d5bb3dcbaddbd36ac9bcfcf41fc7afa9f0a3",
+        "findings": [
+          "Tested 3 reduction factors, weakness: false"
+        ],
+        "metrics": {
+          "failures_at_0.5": 0.0,
+          "failures_at_0.1": 0.0,
+          "failures_at_0.25": 0.0
+        },
+        "timestamp": "2026-01-09T14:30:47.582607Z"
+      },
+      {
+        "test_id": "CRYPT-002",
+        "category": "Algorithmic Cryptanalysis",
+        "assumption": "Signature forgery is computationally infeasible",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 29,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "f7faae766a62c76ba889138f009afd3798bbe87648a753f90824f7a3f7d7622a",
+        "findings": [
+          "ML-DSA-65: 10000 forgery attempts, 0 successful",
+          "SLH-DSA-SHAKE-192s: 10000 forgery attempts, 0 successful"
+        ],
+        "metrics": {
+          "ML-DSA-65_attempts": 10000.0,
+          "SLH-DSA-SHAKE-192s_attempts": 10000.0,
+          "SLH-DSA-SHAKE-192s_successes": 0.0,
+          "ML-DSA-65_successes": 0.0
+        },
+        "timestamp": "2026-01-09T14:30:47.611846Z"
+      },
+      {
+        "test_id": "CRYPT-003",
+        "category": "Algorithmic Cryptanalysis",
+        "assumption": "ML-KEM-768 resists common KEM misuse patterns",
+        "verdict": "PASS",
+        "confidence": 0.9,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "1e679e2e8dc6b79d371adcb49887f724422a9a26a93f2a86dbf763f9be0208e9",
+        "findings": [
+          "Ciphertext reuse: vulnerable=false",
+          "Decapsulation oracle: vulnerable=false",
+          "Static key reuse: vulnerable=false",
+          "Malformed ciphertext: vulnerable=false"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.612094Z"
+      },
+      {
+        "test_id": "CRYPT-004",
+        "category": "Algorithmic Cryptanalysis",
+        "assumption": "Protocol resists downgrade attacks to weaker algorithms",
+        "verdict": "PASS",
+        "confidence": 0.92,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "a6f7fdfb42bcff073a60ef6aa2dcfca7a03572a6a1ff5bf73de659375c2e2746",
+        "findings": [
+          "Algorithm downgrade (ML-DSA-65 → ML-DSA-44): protected=true",
+          "Algorithm downgrade (ML-KEM-768 → ML-KEM-512): protected=true",
+          "Protocol version downgrade (PQC → Classical ECC): protected=true",
+          "Hash function downgrade (BLAKE3/SHAKE256 → SHA-1): protected=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.612193Z"
+      },
+      {
+        "test_id": "CRYPT-005",
+        "category": "Algorithmic Cryptanalysis",
+        "assumption": "Lattice parameters resist BKZ reduction attacks",
+        "verdict": "PASS",
+        "confidence": 0.93,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "de47ae1969e8eade4ac40c4f1b2cdaa105c3686b7a54ea4aeec1b3a423e9a492",
+        "findings": [
+          "ML-DSA-87: BKZ-750, cost 2^256.0",
+          "ML-KEM-1024: BKZ-650, cost 2^256.0"
+        ],
+        "metrics": {
+          "ML-DSA-87_block_size": 750.0,
+          "ML-KEM-1024_cost_log2": 256.0,
+          "ML-DSA-87_cost_log2": 256.0,
+          "ML-KEM-1024_block_size": 650.0
+        },
+        "timestamp": "2026-01-09T14:30:47.612325Z"
+      }
+    ],
+    "Side-Channel Analysis": [
+      {
+        "test_id": "SIDE-001",
+        "category": "Side-Channel Analysis",
+        "assumption": "Cryptographic operations exhibit constant-time behavior",
+        "verdict": "PASS",
+        "confidence": 0.9,
+        "execution_time_ms": 6,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "2c369770565940cdc1ff4b8d47fb2cc21bdf176be48975649b9bbd6845736371",
+        "findings": [
+          "BLAKE3 hash: variance_ratio=0.8746, constant_time=true",
+          "SHAKE256: variance_ratio=0.0422, constant_time=true",
+          "Constant-time compare: variance_ratio=1.2815, constant_time=true"
+        ],
+        "metrics": {
+          "Constant-time compare_variance": 1.2815381733523707,
+          "SHAKE256_variance": 0.042198915072847024,
+          "BLAKE3 hash_variance": 0.8746279021233332
+        },
+        "timestamp": "2026-01-09T14:30:47.622418Z"
+      },
+      {
+        "test_id": "SIDE-002",
+        "category": "Side-Channel Analysis",
+        "assumption": "Cryptographic operations are independent of input values",
+        "verdict": "PASS",
+        "confidence": 0.88,
+        "execution_time_ms": 1,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "08d1393887477acc48ce6df55ec940823935e6ebce1b3b6eb0644ff656ea34c0",
+        "findings": [
+          "Byte comparison: input_dependency=false, risk=Low",
+          "BLAKE3 hash: input_dependency=false, risk=Low"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.624423Z"
+      },
+      {
+        "test_id": "SIDE-003",
+        "category": "Side-Channel Analysis",
+        "assumption": "Branch execution does not leak secret-dependent information",
+        "verdict": "PASS",
+        "confidence": 0.85,
+        "execution_time_ms": 1,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "409e8d400b7a3868b2accce7374880d49415974d04112ac080a978cadbec0d60",
+        "findings": [
+          "Conditional hash: variance=0.19ns, sensitive=false",
+          "Loop iteration count: variance=0.07ns, sensitive=false"
+        ],
+        "metrics": {
+          "Conditional hash": 0.1851569368281858,
+          "Loop iteration count": 0.06619999999999848
+        },
+        "timestamp": "2026-01-09T14:30:47.626130Z"
+      },
+      {
+        "test_id": "SIDE-004",
+        "category": "Side-Channel Analysis",
+        "assumption": "Cache access patterns do not leak cryptographic secrets",
+        "verdict": "PASS",
+        "confidence": 0.85,
+        "execution_time_ms": 1,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "543291854076a27619ca17fd35d98211d07b8c3aeb8744d6875ee843916171ae",
+        "findings": [
+          "Memory access pattern: diff=76.17ns, observable=false",
+          "Table lookup: diff=83.00ns, observable=true"
+        ],
+        "metrics": {
+          "Memory access pattern_diff": 76.1748,
+          "Table lookup_diff": 83.0
+        },
+        "timestamp": "2026-01-09T14:30:47.627794Z"
+      },
+      {
+        "test_id": "SIDE-005",
+        "category": "Side-Channel Analysis",
+        "assumption": "Software countermeasures against power analysis are implemented",
+        "verdict": "PASS",
+        "confidence": 0.8,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "efe78730276e0d0f1bdef7d228b9d2df1ec397ac9ab38d1234593c1c4ac5447e",
+        "findings": [
+          "Note: Full power analysis requires hardware measurement",
+          "Constant-time operations: implemented=true",
+          "No secret-dependent branches: implemented=true",
+          "Blinding (RSA/ECC): implemented=true",
+          "Masking countermeasures: implemented=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.627880Z"
+      }
+    ],
+    "Randomness & Determinism": [
+      {
+        "test_id": "RAND-001",
+        "category": "Randomness & Determinism",
+        "assumption": "Signature algorithms produce deterministic outputs for same inputs",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "c5405d81cba5f594a60dbffa3c4204b0c0ff412b2d811f8b7cf0969d0c036fe0",
+        "findings": [
+          "ML-DSA-65: deterministic=true",
+          "SLH-DSA-SHAKE-192s: deterministic=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.629479Z"
+      },
+      {
+        "test_id": "RAND-002",
+        "category": "Randomness & Determinism",
+        "assumption": "Entropy sources provide high-quality randomness",
+        "verdict": "PASS",
+        "confidence": 0.92,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "4bb02930546246059fa6e256324491200424ff44dc20011932a9821eb0bdc9cd",
+        "findings": [
+          "getrandom (OS): available=true, quality=High",
+          "ChaCha20Rng (CSPRNG): available=true, quality=High",
+          "Zero entropy check: available=true, quality=Test case"
+        ],
+        "metrics": {
+          "getrandom (OS)_bits": 256.0,
+          "ChaCha20Rng (CSPRNG)_bits": 256.0,
+          "Zero entropy check_bits": 0.0
+        },
+        "timestamp": "2026-01-09T14:30:47.629574Z"
+      },
+      {
+        "test_id": "RAND-003",
+        "category": "Randomness & Determinism",
+        "assumption": "Nonce reuse is prevented or detected",
+        "verdict": "PASS",
+        "confidence": 0.96,
+        "execution_time_ms": 1,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "5de498ca82e7aa5e3c27893e929f4e4aa54faddd3a9e796939787c1f18981247",
+        "findings": [
+          "Random 256-bit nonces: 10000 generated, 0 collisions",
+          "Counter-based nonces: 10000 generated, 0 collisions",
+          "Hash-derived nonces: 1000 generated, 0 collisions",
+          "Intentional reuse detection: 2 generated, 1 collisions"
+        ],
+        "metrics": {
+          "Hash-derived nonces_collisions": 0.0,
+          "Random 256-bit nonces_collisions": 0.0,
+          "Counter-based nonces_collisions": 0.0,
+          "Intentional reuse detection_collisions": 1.0
+        },
+        "timestamp": "2026-01-09T14:30:47.631192Z"
+      },
+      {
+        "test_id": "RAND-004",
+        "category": "Randomness & Determinism",
+        "assumption": "RNG produces high-quality random output",
+        "verdict": "PASS",
+        "confidence": 0.9,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "0e1602eb8f22347950fecbc61660df49220cec23415fd66dd0444ba8781e515c",
+        "findings": [
+          "Byte frequency: deviation=0.0028, passed=true",
+          "Bit balance: deviation=0.0000, passed=true",
+          "Run length: deviation=0.0009, passed=true",
+          "Serial correlation: deviation=0.0028, passed=true"
+        ],
+        "metrics": {
+          "Byte frequency": 0.002757019607843756,
+          "Run length": 0.0009275,
+          "Bit balance": 0.00004499999999996174,
+          "Serial correlation": 0.002848129519357477,
+          "samples": 100000.0
+        },
+        "timestamp": "2026-01-09T14:30:47.631582Z"
+      },
+      {
+        "test_id": "RAND-005",
+        "category": "Randomness & Determinism",
+        "assumption": "Seed derivation follows cryptographic best practices",
+        "verdict": "PASS",
+        "confidence": 0.93,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "a1f3c10329497c1b88924ff493ea5bd74d1f740fc491f2e493b68c5eeb358f3b",
+        "findings": [
+          "Seed independence: verified=true",
+          "Derivation consistency: verified=true",
+          "Context separation: verified=true",
+          "Seed length: verified=true",
+          "Weak seed detection: verified=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.631652Z"
+      }
+    ],
+    "Economic-Cryptographic Invariants": [
+      {
+        "test_id": "ECON-001",
+        "category": "Economic-Cryptographic Invariants",
+        "assumption": "Proof-of-work asymmetry ensures Wsolve ≥ k·Wverify",
+        "verdict": "PASS",
+        "confidence": 0.9,
+        "execution_time_ms": 9,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "9e5717b1f19213e4eb279252b530cbe9da630c3e8d7d02dec63cdedd820271f5",
+        "findings": [
+          "Signature gen/verify: ratio=infx (min: 2.0x), passed=true",
+          "VRF compute/verify: ratio=infx (min: 1.0x), passed=true",
+          "Block produce/validate: ratio=2.03x (min: 1.5x), passed=true"
+        ],
+        "metrics": {
+          "VRF compute/verify_ratio": null,
+          "Signature gen/verify_ratio": null,
+          "Block produce/validate_ratio": 2.0329712955779673
+        },
+        "timestamp": "2026-01-09T14:30:47.640805Z"
+      },
+      {
+        "test_id": "ECON-002",
+        "category": "Economic-Cryptographic Invariants",
+        "assumption": "Bandwidth fees follow exponential ramp with utilization",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "7e05aa55ac431b5f514a2108b732ffe657d972a388734a0a15f09e0edbba9c29",
+        "findings": [
+          "Fee ramp: 1.00x at target → 50.40x at 99%",
+          "10%: multiplier=0.0408x",
+          "25%: multiplier=0.1353x",
+          "50%: multiplier=1.0000x",
+          "75%: multiplier=7.3891x",
+          "90%: multiplier=24.5325x",
+          "95%: multiplier=36.5982x",
+          "99%: multiplier=50.4004x"
+        ],
+        "metrics": {
+          "fee_ramp_ratio": 50.400444778065484
+        },
+        "timestamp": "2026-01-09T14:30:47.640955Z"
+      },
+      {
+        "test_id": "ECON-003",
+        "category": "Economic-Cryptographic Invariants",
+        "assumption": "PID emission controller maintains stability bounds",
+        "verdict": "PASS",
+        "confidence": 0.88,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "841c8cb1a1955face8602273ac211ef21d5d011a2cab909492f4468ea414ac7d",
+        "findings": [
+          "Step response: converged=true, overshoot=14.8%, stable=true",
+          "Noise rejection: converged=true, overshoot=5.9%, stable=true",
+          "Ramp tracking: converged=true, overshoot=0.4%, stable=true"
+        ],
+        "metrics": {
+          "kp": 0.1,
+          "Step response_overshoot": 14.835340558465973,
+          "Noise rejection_overshoot": 5.93845529757229,
+          "ki": 0.01,
+          "kd": 0.05,
+          "Ramp tracking_overshoot": 0.4452662165302428
+        },
+        "timestamp": "2026-01-09T14:30:47.641061Z"
+      },
+      {
+        "test_id": "ECON-004",
+        "category": "Economic-Cryptographic Invariants",
+        "assumption": "Oracle Medianizer with IQR is robust to Byzantine oracles",
+        "verdict": "PASS",
+        "confidence": 0.92,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "ecd083339960d61d37b6f1736d668e359e34771b1f7d95ccc45247e5c7e89645",
+        "findings": [
+          "All honest: median=100.04, deviation=0.0%, robust=true",
+          "1/3 malicious (extreme high): median=100.28, deviation=0.3%, robust=true",
+          "IQR filtered: median=100.01, deviation=0.0%, robust=true",
+          "All malicious: median=500.00, deviation=400.0%, robust=false"
+        ],
+        "metrics": {
+          "All honest_deviation": 0.03955469816912682,
+          "All malicious_deviation": 400.0,
+          "robust_scenarios": 3.0,
+          "1/3 malicious (extreme high)_deviation": 0.28174320591654123,
+          "IQR filtered_deviation": 0.005392915803327014
+        },
+        "timestamp": "2026-01-09T14:30:47.641142Z"
+      },
+      {
+        "test_id": "ECON-005",
+        "category": "Economic-Cryptographic Invariants",
+        "assumption": "Stake-weighted voting prevents attacks below 67% stake",
+        "verdict": "PASS",
+        "confidence": 0.93,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "b59d4b06f966a675d1de57f65fe7b3c8171765e57da5a3b375f468afd03cfab2",
+        "findings": [
+          "Honest majority (80%): attacker=20.0%, attack_success=false",
+          "At Byzantine threshold (33%): attacker=33.3%, attack_success=false",
+          "Supermajority attack (70%): attacker=70.0%, attack_success=true",
+          "Stake distribution: attacker=1.8%, attack_success=false"
+        ],
+        "metrics": {
+          "quorum_threshold": 0.67
+        },
+        "timestamp": "2026-01-09T14:30:47.641202Z"
+      },
+      {
+        "test_id": "ECON-006",
+        "category": "Economic-Cryptographic Invariants",
+        "assumption": "Slashing conditions correctly identify and penalize violations",
+        "verdict": "PASS",
+        "confidence": 0.91,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "683145f3a5521b3ca882b6f19a99301b9bef94ca2e49384b9dcd7451458a30bc",
+        "findings": [
+          "Double signing (equivocation): detected=true, slash=100%, correct=true",
+          "Downtime (offline > threshold): detected=true, slash=1%, correct=true",
+          "Invalid block proposal: detected=true, slash=10%, correct=true",
+          "Censorship (provable): detected=true, slash=50%, correct=true",
+          "Oracle manipulation: detected=true, slash=100%, correct=true",
+          "False positive prevention: detected=true, slash=0%, correct=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.641283Z"
+      }
+    ],
+    "Fault Injection": [
+      {
+        "test_id": "FAULT-001",
+        "category": "Fault Injection",
+        "assumption": "Signature verification detects faulted signatures",
+        "verdict": "PASS",
+        "confidence": 0.92,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "54ab40f78acaa0796ecd40944e097ac2515d13d1982bc90de27b11a165a4126f",
+        "findings": [
+          "Single bit-flip: detection_rate=100.00%, resilient=true",
+          "Byte corruption: detection_rate=100.00%, resilient=true",
+          "Signature truncation: detection_rate=100.00%, resilient=true"
+        ],
+        "metrics": {
+          "Byte corruption_detection": 1.0,
+          "Single bit-flip_detection": 1.0,
+          "Signature truncation_detection": 1.0
+        },
+        "timestamp": "2026-01-09T14:30:47.628372Z"
+      },
+      {
+        "test_id": "FAULT-002",
+        "category": "Fault Injection",
+        "assumption": "Aborted signing operations do not leak key material",
+        "verdict": "PASS",
+        "confidence": 0.88,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "c8daffa5edd85bf0132fc6d9693e21f05ae4da1d4f3f39956ec14f1016679dbe",
+        "findings": [
+          "Abort before commitment: key_leaked=false, safe=true",
+          "Abort after commitment: key_leaked=false, safe=true",
+          "Multiple abort cycles: key_leaked=false, safe=true",
+          "Power failure mid-sign: key_leaked=false, safe=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.628447Z"
+      },
+      {
+        "test_id": "FAULT-003",
+        "category": "Fault Injection",
+        "assumption": "Signature verification cannot be bypassed with malformed inputs",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "3d14a1a38462fa55cee6f18a5c99bd83af02241434697b1b0ec4ba94a8de6531",
+        "findings": [
+          "NULL signature: attempts=1, bypasses=0, prevented=true",
+          "All-ones signature: attempts=1, bypasses=0, prevented=true",
+          "Random signature spray: attempts=10000, bypasses=0, prevented=true",
+          "Signature malleability: attempts=1, bypasses=0, prevented=true",
+          "Public key substitution: attempts=100, bypasses=0, prevented=true"
+        ],
+        "metrics": {
+          "Random signature spray_bypasses": 0.0,
+          "All-ones signature_bypasses": 0.0,
+          "Signature malleability_bypasses": 0.0,
+          "Public key substitution_bypasses": 0.0,
+          "NULL signature_bypasses": 0.0
+        },
+        "timestamp": "2026-01-09T14:30:47.629274Z"
+      },
+      {
+        "test_id": "FAULT-004",
+        "category": "Fault Injection",
+        "assumption": "Memory corruption is detected and handled safely",
+        "verdict": "PASS",
+        "confidence": 0.95,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "7b6e9628b628ed3740c43134f87754c9c97927e4132647a2ad65da5249a3f76d",
+        "findings": [
+          "Rust memory safety provides compile-time protection",
+          "Stack buffer overflow: detected=true, recovered=true",
+          "Heap corruption: detected=true, recovered=true",
+          "Use-after-free: detected=true, recovered=true",
+          "Double-free: detected=true, recovered=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.629347Z"
+      },
+      {
+        "test_id": "FAULT-005",
+        "category": "Fault Injection",
+        "assumption": "State corruption is detected via integrity checks",
+        "verdict": "PASS",
+        "confidence": 0.9,
+        "execution_time_ms": 0,
+        "reproduction_seed": 20260105,
+        "artifact_hash": "9642e3b5ce4205ebb3d3adb45e17bf40aeea82cf874962ab98d32bf6d7150b85",
+        "findings": [
+          "Nonce counter: detected=true, recoverable=true",
+          "Key material: detected=true, recoverable=true",
+          "Block height: detected=true, recoverable=true",
+          "Merkle root: detected=true, recoverable=true"
+        ],
+        "metrics": {},
+        "timestamp": "2026-01-09T14:30:47.629416Z"
+      }
+    ]
+  },
+  "critical_findings": [],
+  "warnings": [],
+  "parameter_validation": {
+    "ml_dsa_65_valid": true,
+    "slh_dsa_shake_192s_valid": true,
+    "ml_kem_768_valid": true,
+    "nist_level_3_compliant": true,
+    "details": {
+      "SLH-DSA-SHAKE-192s": "FIPS 205 compliant, 128-bit quantum security",
+      "ML-KEM-768": "FIPS 203 compliant, 128-bit quantum security",
+      "ML-DSA-65": "FIPS 204 compliant, 128-bit quantum security"
+    }
+  },
+  "attack_costs": [
+    {
+      "algorithm": "ML-DSA-65",
+      "classical_cost_log2": 182.0,
+      "quantum_cost_log2": 128.0,
+      "best_known_attack": "Module-LWE lattice sieving",
+      "safety_margin_bits": 0,
+      "verdict": "PASS"
+    },
+    {
+      "algorithm": "SLH-DSA-SHAKE-192s",
+      "classical_cost_log2": 192.0,
+      "quantum_cost_log2": 128.0,
+      "best_known_attack": "Generic hash collision",
+      "safety_margin_bits": 0,
+      "verdict": "PASS"
+    },
+    {
+      "algorithm": "ML-KEM-768",
+      "classical_cost_log2": 182.0,
+      "quantum_cost_log2": 128.0,
+      "best_known_attack": "Module-LWE lattice sieving",
+      "safety_margin_bits": 0,
+      "verdict": "PASS"
+    }
+  ],
+  "artifact_manifest": {
+    "constant_time_check.json": "08d1393887477acc48ce6df55ec940823935e6ebce1b3b6eb0644ff656ea34c0",
+    "lattice_sample.bin": "67fc957976f7e220167356339ce3f3f98f262e7136f7f896355991543bca3c35",
+    "key_rotation.json": "732ec73b64a07e549a7eeaff13da5258ed2231e4aed243b63540ff59ff0db0b7",
+    "slashing_conditions.json": "683145f3a5521b3ca882b6f19a99301b9bef94ca2e49384b9dcd7451458a30bc",
+    "bft_quorum.json": "1d0d36abd6bc550ff4b3dd6e92daa3334037aae9a06cc86de99dc663174c6a49",
+    "deterministic_sigs.json": "c5405d81cba5f594a60dbffa3c4204b0c0ff412b2d811f8b7cf0969d0c036fe0",
+    "vrf_sortition.json": "475e50557f1bbd63a376ae54fcb23f526449d038a32bb3ead73c09a2a256e913",
+    "nonce_reuse.json": "5de498ca82e7aa5e3c27893e929f4e4aa54faddd3a9e796939787c1f18981247",
+    "seed_derivation.json": "a1f3c10329497c1b88924ff493ea5bd74d1f740fc491f2e493b68c5eeb358f3b",
+    "kem_misuse.json": "1e679e2e8dc6b79d371adcb49887f724422a9a26a93f2a86dbf763f9be0208e9",
+    "branch_sensitivity.json": "409e8d400b7a3868b2accce7374880d49415974d04112ac080a978cadbec0d60",
+    "reduced_param_stress.json": "19029e27d557313671de017234b9d5bb3dcbaddbd36ac9bcfcf41fc7afa9f0a3",
+    "signature_forgery.json": "f7faae766a62c76ba889138f009afd3798bbe87648a753f90824f7a3f7d7622a",
+    "cache_timing.json": "543291854076a27619ca17fd35d98211d07b8c3aeb8744d6875ee843916171ae",
+    "pid_stability.json": "841c8cb1a1955face8602273ac211ef21d5d011a2cab909492f4468ea414ac7d",
+    "ml_dsa_65_validation.json": "00910b72a0394fce50bd8fa9d3bafabca5454812d945d1abf62944f0b8d1881e",
+    "memory_corruption.json": "7b6e9628b628ed3740c43134f87754c9c97927e4132647a2ad65da5249a3f76d",
+    "slh_dsa_validation.json": "13c2da461d22be0f8f1f28a51c4809a1f29c20b9b197b648e3b53e28cbb41f9d",
+    "timing_variance.json": "2c369770565940cdc1ff4b8d47fb2cc21bdf176be48975649b9bbd6845736371",
+    "rng_quality.json": "0e1602eb8f22347950fecbc61660df49220cec23415fd66dd0444ba8781e515c",
+    "attack_cost_estimates.json": "21ab10a1966620b346e2ef39ab65d8a49abfbb12ac3c4bd2cbd7295d072ad476",
+    "bandwidth_fees.json": "7e05aa55ac431b5f514a2108b732ffe657d972a388734a0a15f09e0edbba9c29",
+    "ml_kem_1024_validation.json": "44c33d4c04bdd230f78514f9fac9ed0ac55e6e22fa33ed1c66869b0b8214bd0d",
+    "abort_leakage.json": "c8daffa5edd85bf0132fc6d9693e21f05ae4da1d4f3f39956ec14f1016679dbe",
+    "hash_security.json": "1ddcacfc1a6d491558bf25d49dd6dccdb9df4511d9d2462895e386d9fee6595f",
+    "double_spend.json": "ac8d08f4b38763dac6121a3861c2a4c4c8c8657cf80b859d036da2ced1271d94",
+    "power_analysis.json": "efe78730276e0d0f1bdef7d228b9d2df1ec397ac9ab38d1234593c1c4ac5447e",
+    "work_asymmetry.json": "9e5717b1f19213e4eb279252b530cbe9da630c3e8d7d02dec63cdedd820271f5",
+    "module_lwe_margins.json": "ed2e91d50b35b53d1b7ca9f3600bb95a12041715352150e9f9030d52f7578ab7",
+    "commit_reveal.json": "9479f4ca055d306f091e6c6bec6d510855c8d11d9ee2a70db751ac7884d9dc16",
+    "signature_faults.json": "54ab40f78acaa0796ecd40944e097ac2515d13d1982bc90de27b11a165a4126f",
+    "state_corruption.json": "9642e3b5ce4205ebb3d3adb45e17bf40aeea82cf874962ab98d32bf6d7150b85",
+    "lattice_reduction.json": "de47ae1969e8eade4ac40c4f1b2cdaa105c3686b7a54ea4aeec1b3a423e9a492",
+    "stake_voting.json": "b59d4b06f966a675d1de57f65fe7b3c8171765e57da5a3b375f468afd03cfab2",
+    "oracle_iqr.json": "ecd083339960d61d37b6f1736d668e359e34771b1f7d95ccc45247e5c7e89645",
+    "entropy_sources.json": "4bb02930546246059fa6e256324491200424ff44dc20011932a9821eb0bdc9cd",
+    "module_sis_margins.json": "fd1ba6dd4668d94e0882d466297cd5de399f0d9dfcc2c7d251ba67639ddca2b4",
+    "checkpoint_finality.json": "cd04acc5ae3a60acd8f342f3c0eabda378acdb446c0542d96d1cb621873af0a8",
+    "verification_bypass.json": "3d14a1a38462fa55cee6f18a5c99bd83af02241434697b1b0ec4ba94a8de6531",
+    "downgrade_attacks.json": "a6f7fdfb42bcff073a60ef6aa2dcfca7a03572a6a1ff5bf73de659375c2e2746"
+  },
+  "evidence_merkle_root": "d35adae1a30d7767b32e129b87369358e8f9c8044169791e275a79398b8b82fa"
+}

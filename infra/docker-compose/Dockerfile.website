@@ -1,0 +1,18 @@
+# Dytallix Main Website Dockerfile
+FROM nginx:alpine
+
+# Copy the built frontend files
+COPY ../frontend/dist-production /usr/share/nginx/html/
+
+# Copy custom nginx configuration
+COPY nginx-website.conf /etc/nginx/conf.d/default.conf
+
+# Create directories for the website structure
+RUN mkdir -p /usr/share/nginx/html/faucet
+
+# Expose port 80
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost/ || exit 1

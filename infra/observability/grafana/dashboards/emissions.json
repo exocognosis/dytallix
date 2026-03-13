@@ -1,0 +1,92 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "emissions-dashboard", 
+    "title": "Dytallix Emissions",
+    "tags": ["dytallix", "emissions", "oracle"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Emission Pool Amounts",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dyt_emission_pool_amount",
+            "legendFormat": "{{pool_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Total Emission Pool",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(dyt_emission_pool_amount)",
+            "legendFormat": "Total Pool"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {"steps": [{"color": "green", "value": null}]},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Oracle Update Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dyt_oracle_update_latency_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dyt_oracle_update_latency_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Oracle Update Rate",
+        "type": "timeseries", 
+        "targets": [
+          {
+            "expr": "rate(dyt_oracle_update_latency_seconds_count[5m])",
+            "legendFormat": "Updates/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Legacy Emission Pool Size", 
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dytallix_emission_pool_size",
+            "legendFormat": "Legacy Pool Size"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

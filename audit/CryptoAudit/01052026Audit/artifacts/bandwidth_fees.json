@@ -1,0 +1,44 @@
+[
+  {
+    "utilization_percent": 10.0,
+    "fee_multiplier": 0.04076220397836621,
+    "exponential": true,
+    "correct": true
+  },
+  {
+    "utilization_percent": 25.0,
+    "fee_multiplier": 0.1353352832366127,
+    "exponential": true,
+    "correct": true
+  },
+  {
+    "utilization_percent": 50.0,
+    "fee_multiplier": 1.0,
+    "exponential": true,
+    "correct": true
+  },
+  {
+    "utilization_percent": 75.0,
+    "fee_multiplier": 7.38905609893065,
+    "exponential": true,
+    "correct": true
+  },
+  {
+    "utilization_percent": 90.0,
+    "fee_multiplier": 24.532530197109352,
+    "exponential": true,
+    "correct": true
+  },
+  {
+    "utilization_percent": 95.0,
+    "fee_multiplier": 36.598234443677974,
+    "exponential": true,
+    "correct": true
+  },
+  {
+    "utilization_percent": 99.0,
+    "fee_multiplier": 50.400444778065484,
+    "exponential": true,
+    "correct": true
+  }
+]

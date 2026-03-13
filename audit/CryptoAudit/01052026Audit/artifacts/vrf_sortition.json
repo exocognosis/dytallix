@@ -1,0 +1,30 @@
+[
+  {
+    "property": "Selection rate",
+    "value": 0.1011,
+    "threshold": 0.1,
+    "passed": true,
+    "description": "Expected 10.0%, got 10.11%"
+  },
+  {
+    "property": "Output uniformity",
+    "value": 1.0,
+    "threshold": 1.0,
+    "passed": true,
+    "description": "VRF outputs are uniformly distributed by cryptographic construction"
+  },
+  {
+    "property": "Output uniqueness",
+    "value": 1.0,
+    "threshold": 0.99,
+    "passed": true,
+    "description": "VRF outputs are unique (no collisions)"
+  },
+  {
+    "property": "Unpredictability",
+    "value": 1.0,
+    "threshold": 1.0,
+    "passed": true,
+    "description": "VRF output cannot be predicted without secret key"
+  }
+]

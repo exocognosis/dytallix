@@ -1,0 +1,9 @@
+# Workspace-wide Clippy configuration
+# NOTE: 'deny' is not a valid key in clippy.toml (that caused the earlier suggestion error)
+# To enforce lints, use crate-level attributes like:
+#   #![deny(clippy::all, clippy::pedantic, clippy::nursery, warnings)]
+# or pass flags in CI: cargo clippy -- -D warnings -D clippy::all -D clippy::pedantic -D clippy::nursery
+# Add other configuration options (see: https://doc.rust-lang.org/clippy/configuration.html) below as needed.
+
+# Example: set MSRV if you wish Clippy to respect it for lint levels
+# msrv = "1.78.0"

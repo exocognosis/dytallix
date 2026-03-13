@@ -1,0 +1,26 @@
+[
+  {
+    "property": "Binding",
+    "tested": true,
+    "secure": true,
+    "description": "Different preimages produce different commitments"
+  },
+  {
+    "property": "Hiding",
+    "tested": true,
+    "secure": true,
+    "description": "BLAKE3 commitment with 256-bit preimage provides computational hiding"
+  },
+  {
+    "property": "Reveal verification",
+    "tested": true,
+    "secure": true,
+    "description": "Reveal correctly verifies against commitment"
+  },
+  {
+    "property": "Front-running resistance",
+    "tested": true,
+    "secure": true,
+    "description": "Commit phase must complete before reveal is valid"
+  }
+]

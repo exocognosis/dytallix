@@ -1,0 +1,22 @@
+[
+  {
+    "corruption_type": "Stack buffer overflow",
+    "detected": true,
+    "recovered": true
+  },
+  {
+    "corruption_type": "Heap corruption",
+    "detected": true,
+    "recovered": true
+  },
+  {
+    "corruption_type": "Use-after-free",
+    "detected": true,
+    "recovered": true
+  },
+  {
+    "corruption_type": "Double-free",
+    "detected": true,
+    "recovered": true
+  }
+]

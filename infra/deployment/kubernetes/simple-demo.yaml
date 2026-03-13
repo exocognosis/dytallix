@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-demo
+  namespace: dytallix-production
+  labels:
+    app: dytallix-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dytallix-demo
+  template:
+    metadata:
+      labels:
+        app: dytallix-demo
+    spec:
+      containers:
+      - name: demo
+        image: nginx:stable-alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-demo-service
+  namespace: dytallix-production
+spec:
+  type: LoadBalancer
+  selector:
+    app: dytallix-demo
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP

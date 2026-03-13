@@ -1,0 +1,478 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Dytallix Testnet - Production Monitoring",
+    "tags": ["dytallix", "testnet", "blockchain", "production"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up{job=\"dytallix-nodes\"}, instance)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true,
+          "datasource": "Prometheus"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Node Health Overview",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "up{job=\"dytallix-nodes\"}",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            },
+            "mappings": [
+              {
+                "type": "value",
+                "value": "0",
+                "text": "DOWN"
+              },
+              {
+                "type": "value",
+                "value": "1",
+                "text": "UP"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Block Height",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 4
+        },
+        "targets": [
+          {
+            "expr": "dytallix_block_height{instance=~\"$instance\"}",
+            "legendFormat": "{{instance}} - Block Height",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Block Number",
+            "min": 0
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true
+        }
+      },
+      {
+        "id": 3,
+        "title": "Transaction Throughput (TPS)",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 4
+        },
+        "targets": [
+          {
+            "expr": "rate(dytallix_transactions_total{instance=~\"$instance\"}[1m])",
+            "legendFormat": "{{instance}} - TPS",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Transactions per Second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "CPU Usage",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 12
+        },
+        "targets": [
+          {
+            "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\",instance=~\"$instance\"}[5m])) * 100)",
+            "legendFormat": "{{instance}} - CPU %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "CPU Usage %",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 80,
+            "colorMode": "critical",
+            "op": "gt"
+          },
+          {
+            "value": 90,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 12
+        },
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes{instance=~\"$instance\"} / node_memory_MemTotal_bytes{instance=~\"$instance\"})) * 100",
+            "legendFormat": "{{instance}} - Memory %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory Usage %",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 80,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Disk Usage",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 12
+        },
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes{fstype!=\"tmpfs\",instance=~\"$instance\"} / node_filesystem_size_bytes{fstype!=\"tmpfs\",instance=~\"$instance\"})) * 100",
+            "legendFormat": "{{instance}} {{mountpoint}} - Disk %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Disk Usage %",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 85,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Peer Count",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 12
+        },
+        "targets": [
+          {
+            "expr": "dytallix_peer_count{instance=~\"$instance\"}",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 2
+                },
+                {
+                  "color": "green",
+                  "value": 4
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Smart Contract Deployments",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "targets": [
+          {
+            "expr": "increase(dytallix_contracts_deployed_total{instance=~\"$instance\"}[1h])",
+            "legendFormat": "{{instance}} - Contracts/hour",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Contracts per Hour",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Post-Quantum Crypto Performance",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dytallix_pqc_operation_duration_seconds_bucket{instance=~\"$instance\"}[5m]))",
+            "legendFormat": "{{instance}} - P95 PQC Operation Time",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dytallix_pqc_operation_duration_seconds_bucket{instance=~\"$instance\"}[5m]))",
+            "legendFormat": "{{instance}} - P50 PQC Operation Time",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Transaction Queue Size",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 28
+        },
+        "targets": [
+          {
+            "expr": "dytallix_transaction_queue_size{instance=~\"$instance\"}",
+            "legendFormat": "{{instance}} - Queue Size",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Queue Size",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 1000,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "API Response Time",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 28
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dytallix_api_request_duration_seconds_bucket{instance=~\"$instance\"}[5m]))",
+            "legendFormat": "{{instance}} - P95 Response Time",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dytallix_api_request_duration_seconds_bucket{instance=~\"$instance\"}[5m]))",
+            "legendFormat": "{{instance}} - P50 Response Time",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        },
+        "targets": [
+          {
+            "expr": "rate(dytallix_errors_total{instance=~\"$instance\"}[1m]) * 60",
+            "legendFormat": "{{instance}} - Errors/minute",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Errors per Minute",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 10,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Sync Status",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 12,
+          "x": 12,
+          "y": 36
+        },
+        "targets": [
+          {
+            "expr": "dytallix_sync_status{instance=~\"$instance\"}",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            },
+            "mappings": [
+              {
+                "type": "value",
+                "value": "0",
+                "text": "OUT OF SYNC"
+              },
+              {
+                "type": "value",
+                "value": "1",
+                "text": "SYNCED"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Alerts",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{job=\"dytallix-nodes\"}",
+          "iconColor": "red",
+          "titleFormat": "{{alertname}}",
+          "textFormat": "{{instance}}: {{alertname}}"
+        }
+      ]
+    }
+  }
+}

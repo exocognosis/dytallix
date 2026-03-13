@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dytallix-testnet
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dytallix-node
+  namespace: dytallix-testnet
+  labels:
+    app: dytallix
+    environment: testnet
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dytallix
+      environment: testnet
+  template:
+    metadata:
+      labels:
+        app: dytallix
+        environment: testnet
+    spec:
+      containers:
+      - name: dytallix-node
+        image: dytallix:testnet
+        ports:
+        - containerPort: 3030
+          name: api
+        - containerPort: 9090
+          name: metrics
+        - containerPort: 8081
+          name: health
+        env:
+        - name: DYTALLIX_ENVIRONMENT
+          value: "testnet"
+        - name: DYTALLIX_LOG_LEVEL
+          value: "info"
+        - name: DYTALLIX_REQUIRE_TLS
+          value: "true"
+        - name: DYTALLIX_AUDIT_LOGGING
+          value: "true"
+        - name: DYTALLIX_METRICS_ENABLED
+          value: "true"
+        volumeMounts:
+        - name: pqc-keys
+          mountPath: /etc/dytallix/keys
+          readOnly: true
+        - name: data
+          mountPath: /var/lib/dytallix
+        - name: logs
+          mountPath: /var/log/dytallix
+        resources:
+          requests:
+            cpu: 1
+            memory: 2Gi
+          limits:
+            cpu: 4
+            memory: 8Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: pqc-keys
+        secret:
+          secretName: dytallix-pqc-keys
+      - name: data
+        persistentVolumeClaim:
+          claimName: dytallix-data
+      - name: logs
+        persistentVolumeClaim:
+          claimName: dytallix-logs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dytallix-service
+  namespace: dytallix-testnet
+spec:
+  selector:
+    app: dytallix
+    environment: testnet
+  ports:
+  - name: api
+    port: 3030
+    targetPort: 3030
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+  - name: health
+    port: 8081
+    targetPort: 8081
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dytallix-data
+  namespace: dytallix-testnet
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dytallix-logs
+  namespace: dytallix-testnet
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi

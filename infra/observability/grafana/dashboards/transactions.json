@@ -1,0 +1,108 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "transactions-dashboard",
+    "title": "Dytallix Transactions",
+    "tags": ["dytallix", "transactions", "mempool"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Transactions Per Second (TPS)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_tps",
+            "legendFormat": "TPS"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 100}, {"color": "red", "value": 1000}]}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Mempool Size",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dyt_mempool_size",
+            "legendFormat": "Pending Txs"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1000}, {"color": "red", "value": 5000}]}
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "TPS Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dyt_tps",
+            "legendFormat": "TPS"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Mempool Size Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dyt_mempool_size",
+            "legendFormat": "Pending Transactions"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Gas Used Per Block",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dyt_gas_used_per_block_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dyt_gas_used_per_block_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      },
+      {
+        "id": 6,
+        "title": "Mempool Operations",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(dytallix_mempool_admitted_total[5m])",
+            "legendFormat": "Admitted/sec"
+          },
+          {
+            "expr": "rate(dytallix_mempool_rejected_total[5m])",
+            "legendFormat": "Rejected/sec {{reason}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

@@ -1,0 +1,112 @@
+# Default Deny Network Policies
+# These policies implement a default-deny-all approach for all network traffic
+# All pods must have explicit allow policies to communicate
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "default-deny"
+    security.dytallix.io/type: "ingress"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  # No ingress rules specified - denies all ingress traffic
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-egress
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "default-deny"
+    security.dytallix.io/type: "egress"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  # No egress rules specified - denies all egress traffic
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "system"
+    security.dytallix.io/type: "dns"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS queries to system DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow DNS queries to kube-dns/CoreDNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-system-monitoring
+  namespace: dytallix
+  labels:
+    security.dytallix.io/policy: "system"
+    security.dytallix.io/type: "monitoring"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow Prometheus scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 10254
+  # Allow kubelet probes
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 10250
+    - protocol: TCP
+      port: 10254

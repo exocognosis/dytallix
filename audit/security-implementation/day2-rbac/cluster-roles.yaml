@@ -1,0 +1,58 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dytallix-node-role
+  labels:
+    security.dytallix.io/rbac: "enabled"
+rules:
+# Minimal permissions for blockchain node
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["dytallix-config"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dytallix-ai-services-role
+  labels:
+    security.dytallix.io/rbac: "enabled"
+rules:
+# Minimal permissions for AI services
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["dytallix-ai-secrets"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dytallix-frontend-role
+  labels:
+    security.dytallix.io/rbac: "enabled"
+rules:
+# Minimal permissions for frontend
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dytallix-bridge-role
+  labels:
+    security.dytallix.io/rbac: "enabled"
+rules:
+# Minimal permissions for bridge operations
+- apiGroups: [""]
+  resources: ["pods", "services", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]

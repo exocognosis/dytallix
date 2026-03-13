@@ -1,0 +1,22 @@
+{
+  "chain_id": "dyt-devnet-1",
+  "dgt_allocations": {
+    "dyt19443f9c5831ffe95b75f593a17622633be5b227c814d9af1": "1000000000000",
+    "dyt185a36de4ab8cee098466ced6320d12a7f59ef8478461894e": "1000000000000",
+    "dyt1569ebc5b4976b8c90c528214abf0f99969c150a994b3bbea": "1000000000000"
+  },
+  "drt_allocations": {
+    "dyt19443f9c5831ffe95b75f593a17622633be5b227c814d9af1": "5000000000000",
+    "dyt185a36de4ab8cee098466ced6320d12a7f59ef8478461894e": "5000000000000",
+    "dyt1569ebc5b4976b8c90c528214abf0f99969c150a994b3bbea": "5000000000000"
+  },
+  "governance": {
+    "enabled": true,
+    "quorum_bps": 3333,
+    "voting_period_blocks": 1000
+  },
+  "staking": {
+    "enabled": true,
+    "unbonding_period_blocks": 10000
+  }
+}
