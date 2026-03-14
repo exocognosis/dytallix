@@ -1,0 +1,9 @@
+{
+  "address": "0x3A220f351252089D385b29beca14e27F204c296A",
+  "chainId": 1337,
+  "deployer": "0x71562b71999873DB5b286dF957af199Ec94617F7",
+  "transactionHash": "0x9acdb5c7a9cd50ab77faad5c01c59b7d7ff52b7bf704b0f7ce11ce5b4e684181",
+  "blockNumber": 21,
+  "deployedAt": "2026-03-14T02:18:03.230Z",
+  "artifactPath": "artifacts/contracts/QuantumVaultAttestation.sol/QuantumVaultAttestation.json"
+}

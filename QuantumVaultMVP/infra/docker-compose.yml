@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: quantumvault
       POSTGRES_PASSWORD: changeme_secure_password
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -51,6 +51,32 @@ services:
       retries: 3
       start_period: 10s
 
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: quantumvault-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY_ID:-quantumvault}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_ACCESS_KEY:-changeme_minio_secret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: quantumvault-minio-init
+    depends_on:
+      minio:
+        condition: service_started
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${OBJECT_STORAGE_ACCESS_KEY_ID:-quantumvault} ${OBJECT_STORAGE_SECRET_ACCESS_KEY:-changeme_minio_secret} &&
+      mc mb -p local/${OBJECT_STORAGE_BUCKET:-quantumvault} || true
+      "
+
   blockchain:
     profiles: [ "evm" ]
     image: ethereum/client-go:latest
@@ -62,6 +88,8 @@ services:
       - --http.addr=0.0.0.0
       - --http.port=8545
       - --http.api=eth,net,web3
+      - --http.vhosts=*
+      - --http.corsdomain=*
       - --nodiscover
       - --maxpeers=0
     ports:
@@ -79,6 +107,8 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     container_name: quantumvault-backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql://quantumvault:changeme_secure_password@postgres:5432/quantumvault?schema=public
       REDIS_HOST: redis
@@ -94,11 +124,49 @@ services:
       DYTALLIX_API_TOKEN: ${DYTALLIX_API_TOKEN:-}
       # For ANCHORING_BACKEND=evm (run compose with --profile evm)
       BLOCKCHAIN_RPC_URL: ${BLOCKCHAIN_RPC_URL:-http://blockchain:8545}
-      BLOCKCHAIN_PRIVATE_KEY: ${BLOCKCHAIN_PRIVATE_KEY:?set BLOCKCHAIN_PRIVATE_KEY}
-      BLOCKCHAIN_CHAIN_ID: 1337
+      BLOCKCHAIN_PRIVATE_KEY: ${BLOCKCHAIN_PRIVATE_KEY:-}
+      BLOCKCHAIN_FROM_ADDRESS: ${BLOCKCHAIN_FROM_ADDRESS:-}
+      BLOCKCHAIN_CHAIN_ID: ${BLOCKCHAIN_CHAIN_ID:-31337}
+      ATTESTATION_CONTRACT_ADDRESS: ${ATTESTATION_CONTRACT_ADDRESS:-}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      VAULT_KV_MOUNT: ${VAULT_KV_MOUNT:-secret}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-filesystem}
+      STORAGE_FILESYSTEM_ROOT: ${STORAGE_FILESYSTEM_ROOT:-/app/data}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-quantumvault}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+      OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT:-http://minio:9000}
+      OBJECT_STORAGE_FORCE_PATH_STYLE: ${OBJECT_STORAGE_FORCE_PATH_STYLE:-true}
+      OBJECT_STORAGE_ACCESS_KEY_ID: ${OBJECT_STORAGE_ACCESS_KEY_ID:-quantumvault}
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_SECRET_ACCESS_KEY:-changeme_minio_secret}
+      OBJECT_STORAGE_PREFIX: ${OBJECT_STORAGE_PREFIX:-}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      ATTESTATION_KEY_BOOTSTRAP_ALLOWED: ${ATTESTATION_KEY_BOOTSTRAP_ALLOWED:-true}
+      TRANSPORT_KEYS_BOOTSTRAP_ALLOWED: ${TRANSPORT_KEYS_BOOTSTRAP_ALLOWED:-true}
+      ATTESTATION_SIGNER_KEY_ID_PIN: ${ATTESTATION_SIGNER_KEY_ID_PIN:-}
+      ATTESTATION_SIGNER_KEY_HASH_PIN: ${ATTESTATION_SIGNER_KEY_HASH_PIN:-}
+      TRANSPORT_KEM_KEY_ID_PIN: ${TRANSPORT_KEM_KEY_ID_PIN:-}
+      TRANSPORT_KEM_KEY_HASH_PIN: ${TRANSPORT_KEM_KEY_HASH_PIN:-}
+      TRANSPORT_IDENTITY_KEY_ID_PIN: ${TRANSPORT_IDENTITY_KEY_ID_PIN:-}
+      TRANSPORT_IDENTITY_KEY_HASH_PIN: ${TRANSPORT_IDENTITY_KEY_HASH_PIN:-}
+      ENTERPRISE_IDP_PROVIDER: ${ENTERPRISE_IDP_PROVIDER:-azure_ad}
+      ENTERPRISE_IDP_JWKS_URL: ${ENTERPRISE_IDP_JWKS_URL:-}
+      ENTERPRISE_IDP_ISSUER: ${ENTERPRISE_IDP_ISSUER:-}
+      ENTERPRISE_IDP_AUDIENCE: ${ENTERPRISE_IDP_AUDIENCE:-}
+      ENTERPRISE_STEP_UP_JWKS_URL: ${ENTERPRISE_STEP_UP_JWKS_URL:-}
+      ENTERPRISE_STEP_UP_ISSUER: ${ENTERPRISE_STEP_UP_ISSUER:-}
+      ENTERPRISE_STEP_UP_AUDIENCE: ${ENTERPRISE_STEP_UP_AUDIENCE:-}
+      DEVICE_ATTESTATION_JWKS_URL: ${DEVICE_ATTESTATION_JWKS_URL:-}
+      DEVICE_ATTESTATION_ISSUER: ${DEVICE_ATTESTATION_ISSUER:-}
+      DEVICE_ATTESTATION_AUDIENCE: ${DEVICE_ATTESTATION_AUDIENCE:-}
+      ACCESS_AUDIT_ANCHOR_EVENTS: ${ACCESS_AUDIT_ANCHOR_EVENTS:-}
+      SIEM_EXPORT_ENABLED: ${SIEM_EXPORT_ENABLED:-false}
+      SIEM_EXPORT_URL: ${SIEM_EXPORT_URL:-}
+      SIEM_EXPORT_FORMAT: ${SIEM_EXPORT_FORMAT:-json}
+      SIEM_EXPORT_AUTH_TOKEN: ${SIEM_EXPORT_AUTH_TOKEN:-}
+      SIEM_EXPORT_TIMEOUT_MS: ${SIEM_EXPORT_TIMEOUT_MS:-5000}
+      MONITORING_BEARER_TOKEN: ${MONITORING_BEARER_TOKEN:-}
       PORT: 3000
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
     ports:
       - "13000:3000"
     depends_on:
@@ -108,8 +176,11 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
+      minio:
+        condition: service_started
     volumes:
       - ./logs:/app/logs
+      - ./data:/app/data
     healthcheck:
       test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/blockchain/status',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1));" ]
       interval: 30s
@@ -140,11 +211,59 @@ services:
       retries: 3
       start_period: 10s
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.122.1
+    container_name: quantumvault-otel-collector
+    command: [ "--config=/etc/otelcol-contrib/config.yaml" ]
+    volumes:
+      - ./otel/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "9464:9464"
+    depends_on:
+      - backend
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: quantumvault-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+      - otel-collector
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: quantumvault-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme_grafana}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3002:3000"
+    depends_on:
+      - prometheus
+
 volumes:
   postgres-data:
   redis-data:
   vault-data:
   blockchain-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
 
 
 networks:

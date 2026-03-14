@@ -4,6 +4,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
+!agent/package-lock.json
 
 # Build outputs
 dist/
@@ -14,6 +15,9 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.test
 
 # IDE
 .vscode/
@@ -53,6 +57,7 @@ out/
 tmp/
 temp/
 *.tmp
+infra/data/local-managed-endpoint-e2e/
 
 # Coverage
 coverage/
@@ -64,3 +69,8 @@ __pycache__/
 
 # Vault data (local)
 vault-data/
+
+# Secure local-only runtime snapshots
+.secure/*
+!.secure/.gitignore
+!.secure/README.md

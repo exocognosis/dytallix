@@ -10,12 +10,122 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AuthSource {
+  LOCAL
+  ACTIVE_DIRECTORY
+  AZURE_AD
+  OKTA
+  ENTERPRISE_IAM
+}
+
+enum ClearanceLevel {
+  L0_INTERNAL
+  L1_SENSITIVE
+  L2_CONFIDENTIAL
+  L3_RESTRICTED
+  L4_CRITICAL
+}
+
+enum ClassificationLevel {
+  L0_INTERNAL
+  L1_SENSITIVE
+  L2_CONFIDENTIAL
+  L3_RESTRICTED
+  L4_CRITICAL
+}
+
+enum DeviceComplianceStatus {
+  UNKNOWN
+  MANAGED
+  HARDENED
+  SECURE_WORKSTATION
+  NON_COMPLIANT
+}
+
+enum NetworkZone {
+  UNKNOWN
+  INTERNAL
+  VPN
+  RESTRICTED
+  SECURE_ENCLAVE
+  EXTERNAL
+}
+
+enum EncryptionState {
+  UNENCRYPTED
+  PQC_WRAPPED
+  SESSION_REWRAPPED
+  DESTROYED
+}
+
+enum AssetLifecycleState {
+  DISCOVERED
+  CLASSIFIED
+  ENCRYPTED
+  STORED
+  AVAILABLE
+  ACCESS_REQUESTED
+  ACCESS_GRANTED
+  ACCESS_EXPIRED
+  REVOKED
+  DESTROYED
+}
+
+enum AccessAction {
+  VIEW
+  DOWNLOAD
+  CONTROLLED_DOWNLOAD
+}
+
+enum AccessDecision {
+  APPROVED
+  DENIED
+  APPROVAL_REQUIRED
+  EXPIRED
+  REVOKED
+}
+
+enum AccessSessionStatus {
+  ACTIVE
+  EXPIRED
+  CLOSED
+  REVOKED
+}
+
+enum ManagedCredentialStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum AuditEventType {
+  DISCOVERY
+  CLASSIFICATION
+  ENCRYPTION
+  KEY_GENERATION
+  STORAGE_WRITE
+  ACCESS_REQUEST
+  APPROVAL
+  DENIAL
+  SESSION_START
+  SESSION_END
+  REVOCATION
+  DELETION
+}
+
 // User management and authentication
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
   passwordHash  String
   role          UserRole  @default(VIEWER)
+  authSource    AuthSource @default(LOCAL)
+  employeeId    String?   @unique
+  department    String?
+  clearanceLevel ClearanceLevel @default(L0_INTERNAL)
+  projectMemberships String[] @default([])
+  lastMfaAt     DateTime?
+  breakGlass    Boolean   @default(false)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -23,11 +133,18 @@ model User {
   
   sessions      Session[]
   auditLogs     AuditLog[]
+  accessRequests AccessRequest[]
+  accessSessions AccessSession[]
+  auditLedgerEvents AuditLedgerEvent[]
   systemControlUpdates SystemControl[]
   frozenAssets  Asset[]   @relation("AssetFrozenByUser")
   requestedApprovals AdminApproval[] @relation("ApprovalRequestedByUser")
   reviewedApprovals AdminApproval[] @relation("ApprovalReviewedByUser")
   updatedRiskRules AdminRiskRule[]
+  serviceAccountProfile ServiceAccount?
+  assignedManagedCredentials ManagedCredential[] @relation("ManagedCredentialAssignedUser")
+  issuedManagedCredentials ManagedCredential[] @relation("ManagedCredentialIssuedByUser")
+  revokedManagedCredentials ManagedCredential[] @relation("ManagedCredentialRevokedByUser")
 }
 
 enum UserRole {
@@ -36,10 +153,76 @@ enum UserRole {
   VIEWER
 }
 
+model ServiceAccount {
+  id                  String         @id @default(uuid())
+  clientId            String         @unique
+  displayName         String
+  description         String?
+  clientSecretHash    String
+  role                UserRole       @default(VIEWER)
+  clearanceLevel      ClearanceLevel @default(L0_INTERNAL)
+  department          String?
+  projectMemberships  String[]       @default([])
+  allowedNetworkZones String[]       @default([])
+  userId              String         @unique
+  isActive            Boolean        @default(true)
+  secretRotatedAt     DateTime?
+  lastUsedAt          DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, createdAt])
+}
+
+model ManagedCredential {
+  id                  String                  @id @default(uuid())
+  displayName         String
+  assignedUserId      String
+  deviceId            String
+  deviceLabel         String?
+  deviceKeyAlgorithm  String
+  devicePublicKey     String
+  devicePublicKeyHash String
+  networkZone         NetworkZone             @default(UNKNOWN)
+  locationLabel       String?
+  locationCode        String?
+  status              ManagedCredentialStatus @default(ACTIVE)
+  issuedReason        String?
+  revokedReason       String?
+  expiresAt           DateTime?
+  lastUsedAt          DateTime?
+  issuedByUserId      String?
+  revokedByUserId     String?
+  metadata            Json?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  assignedUser        User                    @relation("ManagedCredentialAssignedUser", fields: [assignedUserId], references: [id], onDelete: Cascade)
+  issuedByUser        User?                   @relation("ManagedCredentialIssuedByUser", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+  revokedByUser       User?                   @relation("ManagedCredentialRevokedByUser", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([assignedUserId, status, createdAt])
+  @@index([deviceId, status, createdAt])
+  @@index([networkZone, status, createdAt])
+  @@index([devicePublicKeyHash])
+}
+
 model Session {
   id           String    @id @default(uuid())
   userId       String
   token        String    @unique
+  authSource   AuthSource @default(LOCAL)
+  idpSubject   String?
+  mfaSatisfied Boolean   @default(false)
+  stepUpSatisfied Boolean @default(false)
+  deviceId     String?
+  deviceCompliance DeviceComplianceStatus @default(UNKNOWN)
+  deviceTrustLevel String?
+  networkZone  NetworkZone @default(UNKNOWN)
+  ipAddress    String?
+  sessionClaims Json?
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
   
@@ -47,6 +230,8 @@ model Session {
   
   @@index([userId])
   @@index([token])
+  @@index([expiresAt])
+  @@index([deviceId])
 }
 
 model AuditLog {
@@ -217,6 +402,7 @@ model AdminApproval {
 
   requestedByUser   User?                  @relation("ApprovalRequestedByUser", fields: [requestedByUserId], references: [id], onDelete: SetNull)
   reviewedByUser    User?                  @relation("ApprovalReviewedByUser", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  accessRequests    AccessRequest[]
 
   @@index([status, createdAt])
   @@index([operationType, resourceType, resourceId])
@@ -232,6 +418,7 @@ enum AdminApprovalOperation {
   PIPELINE_TRANSFER
   WRAPPING_JOB
   ATTESTATION_SUBMISSION
+  ACCESS_SESSION
 }
 
 model AdminRiskRule {
@@ -539,16 +726,143 @@ model PipelineAsset {
   fileSizeBytes         Int?
   nistLevel             Int?
   metadata              Json?
+  classificationLevel   ClassificationLevel @default(L0_INTERNAL)
+  ownerDepartment       String?
+  storageLocation       String?
+  encryptionState       EncryptionState     @default(UNENCRYPTED)
+  keyManifestRef        String?
+  authorizedRoles       String[]            @default([])
+  retentionPolicy       String?
+  lifecycleState        AssetLifecycleState @default(DISCOVERED)
+  integrityCheckTimestamp DateTime?
+  legalHold             Boolean             @default(false)
+  legalHoldReason       String?
+  approvalRequired      Boolean             @default(false)
+  lastAccessAt          DateTime?
+  accessHistoryRef      String?
   stageTimestamps       Json?
   errorMessage          String?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
   run                   PipelineRun         @relation(fields: [runId], references: [id], onDelete: Cascade)
+  accessRequests        AccessRequest[]
+  accessSessions        AccessSession[]
+  auditLedgerEvents     AuditLedgerEvent[]
 
   @@index([runId])
   @@index([status])
   @@index([pqcProtected])
+  @@index([classificationLevel])
+  @@index([lifecycleState])
+  @@index([legalHold])
+}
+
+model AccessRequest {
+  id                    String              @id @default(uuid())
+  pipelineAssetId       String
+  requesterUserId       String
+  requestedAction       AccessAction
+  requestedTtlSeconds   Int
+  decision              AccessDecision
+  decisionReason        String?
+  policyVersion         String
+  policyHash            String
+  classificationLevel   ClassificationLevel
+  requesterClearanceLevel ClearanceLevel
+  requesterDepartment   String?
+  requesterRole         String?
+  requesterProjects     String[]            @default([])
+  deviceId              String?
+  deviceCompliance      DeviceComplianceStatus @default(UNKNOWN)
+  networkZone           NetworkZone         @default(UNKNOWN)
+  approvalId            String?
+  approvalHash          String?
+  requestedAt           DateTime            @default(now())
+  decidedAt             DateTime?
+  expiresAt             DateTime?
+  context               Json?
+
+  pipelineAsset         PipelineAsset       @relation(fields: [pipelineAssetId], references: [id], onDelete: Cascade)
+  requesterUser         User                @relation(fields: [requesterUserId], references: [id], onDelete: Cascade)
+  approval              AdminApproval?      @relation(fields: [approvalId], references: [id], onDelete: SetNull)
+  accessSession         AccessSession?
+  auditLedgerEvents     AuditLedgerEvent[]
+
+  @@index([pipelineAssetId, requestedAt])
+  @@index([requesterUserId, requestedAt])
+  @@index([decision, requestedAt])
+  @@index([approvalId])
+}
+
+model AccessSession {
+  id                    String              @id @default(uuid())
+  accessRequestId       String              @unique
+  pipelineAssetId       String
+  requesterUserId       String
+  sessionTokenHash      String              @unique
+  wrapKeyVaultPath      String
+  rewrappedKeyNonce     String
+  rewrappedKeyCiphertext String
+  rewrappedKeyTag       String
+  rewrapAlgorithm       String
+  contentHash           String
+  allowedAction         AccessAction
+  status                AccessSessionStatus @default(ACTIVE)
+  expiresAt             DateTime
+  closedAt              DateTime?
+  revokedAt             DateTime?
+  lastAccessAt          DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  blockchainTxHash      String?
+  blockchainBlockNumber BigInt?
+  metadata              Json?
+
+  accessRequest         AccessRequest       @relation(fields: [accessRequestId], references: [id], onDelete: Cascade)
+  pipelineAsset         PipelineAsset       @relation(fields: [pipelineAssetId], references: [id], onDelete: Cascade)
+  requesterUser         User                @relation(fields: [requesterUserId], references: [id], onDelete: Cascade)
+  auditLedgerEvents     AuditLedgerEvent[]
+
+  @@index([pipelineAssetId, status, expiresAt])
+  @@index([requesterUserId, status, expiresAt])
+}
+
+model AuditLedgerEvent {
+  id                    String              @id @default(uuid())
+  eventType             AuditEventType
+  action                String
+  result                String
+  pipelineAssetId       String?
+  accessRequestId       String?
+  accessSessionId       String?
+  userId                String?
+  role                  String?
+  deviceId              String?
+  location              String?
+  networkZone           NetworkZone?
+  policyVersion         String?
+  policyHash            String?
+  assetHash             String?
+  previousEventHash     String?
+  eventHash             String              @unique
+  signatureAlgorithm    String
+  digitalSignature      String
+  blockchainTxHash      String?
+  blockchainBlockNumber BigInt?
+  payload               Json
+  createdAt             DateTime            @default(now())
+
+  pipelineAsset         PipelineAsset?      @relation(fields: [pipelineAssetId], references: [id], onDelete: SetNull)
+  accessRequest         AccessRequest?      @relation(fields: [accessRequestId], references: [id], onDelete: SetNull)
+  accessSession         AccessSession?      @relation(fields: [accessSessionId], references: [id], onDelete: SetNull)
+  user                  User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([pipelineAssetId, createdAt])
+  @@index([accessRequestId, createdAt])
+  @@index([accessSessionId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([userId, createdAt])
 }
 
 enum PipelineAssetStatus {

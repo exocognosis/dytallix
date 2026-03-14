@@ -10,6 +10,7 @@ import {
     Zap
 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
+import { Tooltip } from '@/components/ui/Tooltip';
 export interface UseCaseMetric {
     label: string;
     value: string | number;
@@ -31,9 +32,9 @@ export const useCases: UseCase[] = [
         title: 'Financial Services',
         description: 'Protect transaction records, trading algorithms, and customer data with quantum-resistant encryption that exceeds regulatory requirements.',
         metrics: [
-            { label: 'Audit Records Protected', value: '2.4M', description: 'Transaction records secured with PQC' },
-            { label: 'Trading Algorithms', value: 156, description: 'Proprietary models encrypted' },
-            { label: 'Compliance Score', value: '98%', description: 'SOX, PCI-DSS alignment' },
+            { label: 'Long-Retention Records', value: '7+ years', description: 'Settlement and audit data remains sensitive beyond the Y2Q window' },
+            { label: 'Primary Compliance Scope', value: 'PCI DSS', description: 'Payment rails and customer-record workflows need crypto-agile strong-cryptography controls and documented key governance' },
+            { label: 'Y2Q Migration Target', value: '2028', description: 'Front-loaded cutover for customer and treasury cryptographic paths' },
         ],
     },
     {
@@ -42,9 +43,9 @@ export const useCases: UseCase[] = [
         title: 'Healthcare & Life Sciences',
         description: 'HIPAA-compliant protection for PHI, genomic data, and clinical trial information with long-term data security.',
         metrics: [
-            { label: 'PHI Records', value: '850K', description: 'Patient records protected' },
-            { label: 'Retention Period', value: '50+ years', description: 'Long-term quantum safety' },
-            { label: 'Genomic Datasets', value: 234, description: 'Research data secured' },
+            { label: 'PHI Retention Horizon', value: '20+ years', description: 'Clinical archives outlive classical cryptographic safety timelines' },
+            { label: 'Clinical Compliance Scope', value: 'HIPAA/FDA', description: 'PQC planning should cover ePHI, connected medical devices, and long-lived research data across care and device lifecycles' },
+            { label: 'Y2Q Migration Target', value: '2027', description: 'Care delivery and research systems scheduled for pre-CRQC transition' },
         ],
     },
     {
@@ -53,9 +54,9 @@ export const useCases: UseCase[] = [
         title: 'Government & Defense',
         description: 'Classified document protection and secure communications that meet federal PQC mandates ahead of deadlines.',
         metrics: [
-            { label: 'Classified Docs', value: '125K', description: 'Documents secured' },
-            { label: 'Secure Channels', value: 89, description: 'PQC communication channels' },
-            { label: 'FedRAMP Status', value: 'Authorized', description: 'Federal compliance' },
+            { label: 'Classified Shelf Life', value: '15+ years', description: 'Mission data must survive beyond projected Y2Q and CRQC milestones' },
+            { label: 'Federal PQC Baseline', value: 'FIPS 203-205', description: 'Encryption and signature modernization can now align to approved NIST PQC standards for federal environments' },
+            { label: 'Y2Q Migration Target', value: '2027', description: 'Federal crypto-agility timeline aligned to early adversary capability risk' },
         ],
     },
     {
@@ -64,9 +65,9 @@ export const useCases: UseCase[] = [
         title: 'Energy & Utilities',
         description: 'Critical infrastructure protection for SCADA systems, grid operations, and long-lived operational technology.',
         metrics: [
-            { label: 'SCADA Nodes', value: 2847, description: 'Protected endpoints' },
-            { label: 'OT Systems', value: 156, description: 'Secured infrastructure' },
-            { label: 'Uptime', value: '99.99%', description: 'Availability maintained' },
+            { label: 'OT Asset Lifetime', value: '15–30 years', description: 'Control systems remain deployed far past classical crypto viability' },
+            { label: 'Utility Compliance Scope', value: 'NERC CIP', description: 'Remote access, telemetry, and vendor connectivity need crypto-agile planning across BES and OT trust boundaries' },
+            { label: 'Y2Q Migration Target', value: '2028', description: 'Sequenced cutover of high-impact substation and dispatch domains' },
         ],
     },
     {
@@ -75,9 +76,9 @@ export const useCases: UseCase[] = [
         title: 'Technology & IP',
         description: 'Intellectual property protection for source code, trade secrets, and R&D data against future quantum threats.',
         metrics: [
-            { label: 'Code Repos', value: 1247, description: 'Repositories encrypted' },
-            { label: 'Patent Docs', value: '45K', description: 'IP documents secured' },
-            { label: 'R&D Projects', value: 89, description: 'Research protected' },
+            { label: 'IP Secrecy Horizon', value: '10+ years', description: 'Roadmaps and design artifacts retain value throughout the Y2Q window' },
+            { label: 'Software Integrity Scope', value: 'SSDF', description: 'Source, build, signing, and release workflows need PQC-ready software integrity and artifact verification planning' },
+            { label: 'Y2Q Migration Target', value: '2028', description: 'Product and CI/CD cryptography shifted before quantum decryption risk matures' },
         ],
     },
 ];
@@ -97,6 +98,30 @@ const INDUSTRY_COLORS: Record<string, string> = {
     'Energy': 'from-yellow-500 to-amber-500',
     'High-Tech': 'from-purple-500 to-indigo-500',
 };
+
+const ACRONYM_MAP: Record<string, string> = {
+    HDNL: 'HNDL',
+    HNDL: 'HNDL',
+    CRQ: 'CRQC',
+    CRQC: 'CRQC',
+    PQC: 'PQC',
+    Y2Q: 'Y2Q',
+};
+
+function renderNarrativeText(text: string) {
+    const parts = text.split(/(HDNL|HNDL|CRQ|CRQC|PQC|Y2Q)/gi);
+    return parts.map((part, index) => {
+        const normalized = ACRONYM_MAP[part.toUpperCase()];
+        if (!normalized) {
+            return <span key={`${part}-${index}`}>{part}</span>;
+        }
+        return (
+            <Tooltip key={`${part}-${index}`} term={normalized}>
+                {part.toUpperCase()}
+            </Tooltip>
+        );
+    });
+}
 
 export default function UseCasesPage() {
     const [activeTab, setActiveTab] = useState('financial');
@@ -155,20 +180,23 @@ export default function UseCasesPage() {
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-white mb-2">{activeCase.title}</h2>
-                                <p className="text-white/70 max-w-2xl">{activeCase.description}</p>
+                                <p className="text-white/70 max-w-2xl">{renderNarrativeText(activeCase.description)}</p>
                             </div>
                         </div>
                     </GlassPanel>
 
                     {/* Metrics Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-3 text-xs text-white/50 px-1">
+                            {renderNarrativeText('Vertical indicators combine confidentiality horizon, sector compliance scope, and PQC migration posture for each industry profile.')}
+                        </div>
                         {activeCase.metrics.map((metric, index) => (
                             <GlassPanel key={index} className="p-6 text-center">
                                 <div className={`text-3xl font-bold bg-gradient-to-r ${activeColor} bg-clip-text text-transparent mb-2`}>
                                     {metric.value}
                                 </div>
-                                <div className="text-sm font-medium text-white mb-1">{metric.label}</div>
-                                <div className="text-xs text-white/50">{metric.description}</div>
+                                <div className="text-sm font-medium text-white mb-1">{renderNarrativeText(metric.label)}</div>
+                                <div className="text-xs text-white/50">{renderNarrativeText(metric.description)}</div>
                             </GlassPanel>
                         ))}
                     </div>
@@ -181,19 +209,19 @@ export default function UseCasesPage() {
                                 <>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Regulatory Readiness</h4>
-                                        <p className="text-sm text-white/60">SOX and PCI-DSS compliance with quantum-resistant audit trails</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('SOX and PCI-DSS compliance with quantum-resistant audit trails')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Trading Security</h4>
-                                        <p className="text-sm text-white/60">Proprietary algorithms protected from future quantum adversaries</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Proprietary algorithms protected from future quantum adversaries')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Transaction Integrity</h4>
-                                        <p className="text-sm text-white/60">Immutable blockchain-anchored records for dispute resolution</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Immutable blockchain-anchored records for dispute resolution')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Customer Trust</h4>
-                                        <p className="text-sm text-white/60">Future-proof protection of sensitive financial data</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Future-proof protection of sensitive financial data')}</p>
                                     </div>
                                 </>
                             )}
@@ -201,19 +229,19 @@ export default function UseCasesPage() {
                                 <>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">HIPAA Compliance</h4>
-                                        <p className="text-sm text-white/60">PHI encryption exceeding regulatory minimums</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('PHI encryption exceeding regulatory minimums')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Long-term Protection</h4>
-                                        <p className="text-sm text-white/60">50+ year retention with quantum-safe encryption</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('50+ year retention with quantum-safe encryption')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Research Security</h4>
-                                        <p className="text-sm text-white/60">Clinical trial data protected from future decryption</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Clinical trial data protected from future decryption')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Genomic Privacy</h4>
-                                        <p className="text-sm text-white/60">DNA and genetic data secured for patient lifetime</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('DNA and genetic data secured for patient lifetime')}</p>
                                     </div>
                                 </>
                             )}
@@ -221,19 +249,19 @@ export default function UseCasesPage() {
                                 <>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Federal Mandate Ready</h4>
-                                        <p className="text-sm text-white/60">NIST PQC standards compliance ahead of deadlines</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('NIST PQC standards compliance ahead of deadlines')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Classified Protection</h4>
-                                        <p className="text-sm text-white/60">Intelligence documents secured against nation-state threats</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Intelligence documents secured against nation-state threats')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Diplomatic Security</h4>
-                                        <p className="text-sm text-white/60">Secure communications for international relations</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Secure communications for international relations')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">FedRAMP Authorized</h4>
-                                        <p className="text-sm text-white/60">Cloud-ready deployment for federal agencies</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Cloud-ready deployment for federal agencies')}</p>
                                     </div>
                                 </>
                             )}
@@ -241,19 +269,19 @@ export default function UseCasesPage() {
                                 <>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Critical Infrastructure</h4>
-                                        <p className="text-sm text-white/60">SCADA and ICS systems protected from quantum threats</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('SCADA and ICS systems protected from quantum threats')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Grid Security</h4>
-                                        <p className="text-sm text-white/60">Power distribution commands secured end-to-end</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Power distribution commands secured end-to-end')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">OT Protection</h4>
-                                        <p className="text-sm text-white/60">Long-lived operational technology secured for decades</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Long-lived operational technology secured for decades')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Supply Chain</h4>
-                                        <p className="text-sm text-white/60">Vendor communications and contracts protected</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Vendor communications and contracts protected')}</p>
                                     </div>
                                 </>
                             )}
@@ -261,19 +289,19 @@ export default function UseCasesPage() {
                                 <>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">IP Protection</h4>
-                                        <p className="text-sm text-white/60">Source code and trade secrets secured from HNDL</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Source code and trade secrets secured from HNDL')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">R&D Security</h4>
-                                        <p className="text-sm text-white/60">Research data protected during long development cycles</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Research data protected during long development cycles')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Patent Protection</h4>
-                                        <p className="text-sm text-white/60">Invention disclosures secured before filing</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Invention disclosures secured before filing')}</p>
                                     </div>
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <h4 className="font-medium text-white mb-2">Competitive Edge</h4>
-                                        <p className="text-sm text-white/60">Algorithms and models protected from theft</p>
+                                        <p className="text-sm text-white/60">{renderNarrativeText('Algorithms and models protected from theft')}</p>
                                     </div>
                                 </>
                             )}

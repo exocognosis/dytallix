@@ -60,20 +60,22 @@ export class WrappingService {
     return (RISK_LEVEL_RANK[riskLevel] ?? 0) >= (RISK_LEVEL_RANK[rule.requireApprovalAtRiskLevel] ?? 0);
   }
 
-  private async ensureAdminRiskRuleRecord() {
-    return this.prisma.adminRiskRule.upsert({
+  private async getAdminRiskRuleRecord() {
+    const rule = await this.prisma.adminRiskRule.findUnique({
       where: { ruleKey: 'default' },
-      create: {
-        ruleKey: 'default',
-        maxRiskScoreAutoApprove: 70,
-        requireApprovalAtRiskLevel: 'HIGH',
-        maxAssetsPerRun: 1000,
-        isActive: true,
-      },
-      update: {
-        isActive: true,
-      },
     });
+    if (
+      !rule
+      || (
+        !rule.updatedByUserId
+        && rule.maxRiskScoreAutoApprove === 70
+        && rule.requireApprovalAtRiskLevel === 'HIGH'
+        && rule.maxAssetsPerRun === 1000
+      )
+    ) {
+      return null;
+    }
+    return rule;
   }
 
   private async createOrRequireApproval(params: {
@@ -86,7 +88,13 @@ export class WrappingService {
     requestedByUserId?: string | null;
     requestContext?: Record<string, unknown>;
   }): Promise<{ allowed: boolean; message?: string; approvalId?: string }> {
-    const rule = await this.ensureAdminRiskRuleRecord();
+    const rule = await this.getAdminRiskRuleRecord();
+    if (!rule) {
+      return {
+        allowed: false,
+        message: 'Admin risk rules are not configured. Configure Risk Rules before submitting wrapping jobs.',
+      };
+    }
     if (!this.shouldRequireApproval(rule, params.riskScore, params.riskLevel)) {
       return { allowed: true };
     }

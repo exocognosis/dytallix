@@ -1,4 +1,4 @@
-import { Controller, Post, Patch, Body, Get, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Patch, Body, Get, Param, Query, UseGuards, Request, Delete } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -35,6 +35,11 @@ export class AdminController {
     @Get('health')
     async getHealth() {
         return this.adminService.getSystemHealth();
+    }
+
+    @Get('runtime')
+    async getRuntime() {
+        return this.adminService.getRuntimeSummary();
     }
 
     @Get('controls')
@@ -93,8 +98,141 @@ export class AdminController {
     }
 
     @Get('approvals')
-    async getApprovals(@Query('status') status?: string) {
-        return this.adminService.getApprovals(status);
+    async getApprovals(@Query('status') status?: string, @Query('search') search?: string) {
+        return this.adminService.getApprovals(status, search);
+    }
+
+    @Get('service-accounts')
+    async getServiceAccounts(@Query('search') search?: string) {
+        return this.adminService.listServiceAccounts(search);
+    }
+
+    @Post('service-accounts')
+    async createServiceAccount(
+        @Body()
+        body: {
+            displayName: string;
+            clientId?: string;
+            description?: string;
+            role?: string;
+            clearanceLevel?: string;
+            department?: string;
+            projectMemberships?: string[];
+            allowedNetworkZones?: string[];
+        },
+        @Request() req: any,
+    ) {
+        return this.adminService.createServiceAccount(body, {
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
+    }
+
+    @Post('service-accounts/:id/rotate-secret')
+    async rotateServiceAccountSecret(@Param('id') id: string, @Request() req: any) {
+        return this.adminService.rotateServiceAccountSecret(id, {
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
+    }
+
+    @Patch('service-accounts/:id')
+    async updateServiceAccount(
+        @Param('id') id: string,
+        @Body()
+        body: {
+            displayName?: string;
+            description?: string | null;
+            role?: string;
+            clearanceLevel?: string;
+            department?: string | null;
+            projectMemberships?: string[];
+            allowedNetworkZones?: string[];
+            reason?: string;
+        },
+        @Request() req: any,
+    ) {
+        return this.adminService.updateServiceAccount(id, body, {
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
+    }
+
+    @Get('managed-credentials')
+    async getManagedCredentials(
+        @Query('search') search?: string,
+        @Query('status') status?: string,
+    ) {
+        return this.adminService.listManagedCredentials({ search, status });
+    }
+
+    @Post('managed-credentials')
+    async createManagedCredential(
+        @Body()
+        body: {
+            displayName: string;
+            assignedUserId: string;
+            deviceId: string;
+            deviceLabel?: string;
+            deviceKeyAlgorithm: string;
+            devicePublicKey: string;
+            networkZone: string;
+            locationLabel?: string;
+            locationCode?: string;
+            expiresAt?: string | null;
+            reason?: string;
+        },
+        @Request() req: any,
+    ) {
+        return this.adminService.createManagedCredential(body, {
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
+    }
+
+    @Patch('managed-credentials/:id')
+    async updateManagedCredential(
+        @Param('id') id: string,
+        @Body()
+        body: {
+            displayName?: string;
+            deviceLabel?: string | null;
+            networkZone?: string;
+            locationLabel?: string | null;
+            locationCode?: string | null;
+            expiresAt?: string | null;
+            reason?: string;
+        },
+        @Request() req: any,
+    ) {
+        return this.adminService.updateManagedCredential(id, body, {
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
+    }
+
+    @Post('managed-credentials/:id/revoke')
+    async revokeManagedCredential(
+        @Param('id') id: string,
+        @Body() body: { reason?: string },
+        @Request() req: any,
+    ) {
+        return this.adminService.revokeManagedCredential(id, body?.reason, {
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
+    }
+
+    @Patch('service-accounts/:id/active')
+    async setServiceAccountActive(
+        @Param('id') id: string,
+        @Body() body: { isActive: boolean; reason?: string },
+        @Request() req: any,
+    ) {
+        return this.adminService.setServiceAccountActive(id, body.isActive, body.reason, {
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
     }
 
     @Post('approvals/:id/approve')
@@ -142,9 +280,40 @@ export class AdminController {
         });
     }
 
+    @Delete('risk-rules')
+    async clearRiskRules(@Request() req: any) {
+        return this.adminService.clearRiskRules({
+            id: req?.user?.id,
+            email: req?.user?.email,
+        });
+    }
+
     @Get('logs')
     async getLogs() {
         return this.adminService.getSystemLogs();
+    }
+
+    @Get('activity')
+    async getActivityFeed(
+        @Query('function') functionKey?: string,
+        @Query('source') source?: string,
+        @Query('result') result?: string,
+        @Query('actor') actor?: string,
+        @Query('search') search?: string,
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+        @Query('limit') limit?: string,
+    ) {
+        return this.adminService.getActivityFeed({
+            function: functionKey,
+            source,
+            result,
+            actor,
+            search,
+            from,
+            to,
+            limit,
+        });
     }
 
     @Get('algos')

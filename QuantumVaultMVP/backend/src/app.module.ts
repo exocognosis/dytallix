@@ -19,13 +19,18 @@ import { TransportModule } from './transport/transport.module';
 import { ThreatsModule } from './threats/threats.module';
 import { TlsScannerModule } from './tls-scanner/tls-scanner.module';
 import { AdminModule } from './admin/admin.module';
+import { PipelineModule } from './pipeline/pipeline.module';
+import { AccessModule } from './access/access.module';
+import { MetricsModule } from './monitoring/metrics.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ['.env.runtime.local', '.env'],
     }),
+    MetricsModule,
     DatabaseModule,
     QueueModule,
     VaultModule,
@@ -45,6 +50,9 @@ import { AdminModule } from './admin/admin.module';
     TransportModule,
     ThreatsModule,
     AdminModule,
+    PipelineModule,
+    AccessModule,
+    MonitoringModule,
   ],
 })
 export class AppModule { }

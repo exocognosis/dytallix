@@ -20,6 +20,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       { name: 'scans' },
       { name: 'wrapping' },
       { name: 'attestation' },
+      { name: 'access-audit' },
+      { name: 'siem-export' },
     ),
   ],
   exports: [BullModule],

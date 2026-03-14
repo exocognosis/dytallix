@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getDefaultApiBaseUrl, withBasePath } from './base-path';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api/v1' : 'http://127.0.0.1:13000/api/v1');
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || getDefaultApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -37,8 +38,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined' && !isLoginRequest) {
       console.warn('API 401 Unauthorized - Redirecting to login', error.config?.url);
       localStorage.removeItem('token');
-      // Ensure we redirect to the app login, not the root domain
-      window.location.href = '/QuantumVaultMVP/login';
+      window.location.href = withBasePath('/login');
     }
     return Promise.reject(error);
   }
@@ -79,6 +79,22 @@ export const authAPI = {
   },
   getMe: async () => {
     const response = await apiClient.get('/auth/me');
+    return response.data;
+  },
+  exchangeEnterpriseToken: async (idToken: string) => {
+    const response = await apiClient.post('/auth/enterprise/exchange', { idToken });
+    const token: string | undefined = response.data?.access_token ?? response.data?.token;
+    if (token && typeof window !== 'undefined') {
+      localStorage.setItem('token', token);
+    }
+    return response.data;
+  },
+  exchangeServiceAccountToken: async (clientId: string, clientSecret: string) => {
+    const response = await apiClient.post('/auth/service-account/token', { clientId, clientSecret });
+    const token: string | undefined = response.data?.access_token ?? response.data?.token;
+    if (token && typeof window !== 'undefined') {
+      localStorage.setItem('token', token);
+    }
     return response.data;
   },
 };
@@ -302,6 +318,111 @@ export const attestationAPI = {
   },
 };
 
+// Internal access API
+export const accessAPI = {
+  getPolicyMatrix: async () => {
+    const response = await apiClient.get('/access/policy-matrix');
+    return response.data;
+  },
+  getManagedCredentials: async (status?: string) => {
+    const response = await apiClient.get('/access/managed-credentials', {
+      params: status ? { status } : undefined,
+    });
+    return response.data;
+  },
+  getAssets: async (params?: {
+    classificationLevel?: string;
+    lifecycleState?: string;
+    legalHold?: boolean;
+    search?: string;
+  }) => {
+    const response = await apiClient.get('/access/assets', { params });
+    return response.data;
+  },
+  getAsset: async (id: string) => {
+    const response = await apiClient.get(`/access/assets/${id}`);
+    return response.data;
+  },
+  setLegalHold: async (id: string, enabled: boolean, reason?: string) => {
+    const response = await apiClient.patch(`/access/assets/${id}/legal-hold`, { enabled, reason });
+    return response.data;
+  },
+  requestAccess: async (payload: {
+    pipelineAssetId: string;
+    action: 'VIEW' | 'DOWNLOAD' | 'CONTROLLED_DOWNLOAD';
+    ttlSeconds?: number;
+    reason?: string;
+  }) => {
+    const response = await apiClient.post('/access/requests', payload);
+    return response.data;
+  },
+  getRequests: async (decision?: string) => {
+    const response = await apiClient.get('/access/requests', {
+      params: decision ? { decision } : undefined,
+    });
+    return response.data;
+  },
+  activateRequest: async (id: string) => {
+    const response = await apiClient.post(`/access/requests/${id}/activate`, {});
+    return response.data;
+  },
+  getSessions: async (status?: string) => {
+    const response = await apiClient.get('/access/sessions', {
+      params: status ? { status } : undefined,
+    });
+    return response.data;
+  },
+  getSession: async (id: string) => {
+    const response = await apiClient.get(`/access/sessions/${id}`);
+    return response.data;
+  },
+  viewSession: async (id: string, sessionToken: string, mode: 'inline' | 'download' = 'inline') => {
+    const response = await apiClient.post(`/access/sessions/${id}/view`, { sessionToken, mode });
+    return response.data;
+  },
+  checkoutSession: async (id: string, payload: {
+    sessionToken: string;
+    credentialId: string;
+    deviceKeyAlgorithm: string;
+    devicePublicKey: string;
+    agentVersion?: string;
+    workspaceId?: string;
+    reason?: string;
+  }) => {
+    const response = await apiClient.post(`/access/sessions/${id}/checkout`, payload);
+    return response.data;
+  },
+  checkinSession: async (id: string, payload: {
+    sessionToken: string;
+    checkoutBundleId: string;
+    contentBase64: string;
+    contentSha256?: string;
+    mediaType?: string;
+    agentVersion?: string;
+    editor?: string;
+    reason?: string;
+  }) => {
+    const response = await apiClient.post(`/access/sessions/${id}/checkin`, payload);
+    return response.data;
+  },
+  buildViewerUrl: (id: string, viewerToken: string) => {
+    const query = `viewerToken=${encodeURIComponent(viewerToken)}`;
+    return `${API_BASE_URL}/access/sessions/${encodeURIComponent(id)}/viewer?${query}`;
+  },
+  closeSession: async (id: string, reason?: string) => {
+    const response = await apiClient.post(`/access/sessions/${id}/close`, { reason });
+    return response.data;
+  },
+  getMonitoringSummary: async () => {
+    const response = await apiClient.get('/access/monitoring/summary');
+    return response.data;
+  },
+  getAuditEvents: async (params?: { eventType?: string; pipelineAssetId?: string }) => {
+    const response = await apiClient.get('/access/audit', { params });
+    return response.data;
+  },
+};
+
 // Admin API - uses longer timeout for bulk operations
 const adminClient = axios.create({
   baseURL: API_BASE_URL,
@@ -342,6 +463,10 @@ export const adminAPI = {
     const response = await apiClient.get('/admin/health');
     return response.data;
   },
+  getRuntime: async () => {
+    const response = await apiClient.get('/admin/runtime');
+    return response.data;
+  },
   getSystemControls: async () => {
     const response = await apiClient.get('/admin/controls');
     return response.data;
@@ -380,10 +505,97 @@ export const adminAPI = {
     });
     return response.data;
   },
-  getApprovals: async (status: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING') => {
+  getApprovals: async (
+    status: 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING',
+    search?: string,
+  ) => {
     const response = await apiClient.get('/admin/approvals', {
-      params: { status },
+      params: {
+        status,
+        ...(search ? { search } : {}),
+      },
     });
+    return response.data;
+  },
+  getServiceAccounts: async (search?: string) => {
+    const response = await apiClient.get('/admin/service-accounts', {
+      params: search ? { search } : undefined,
+    });
+    return response.data;
+  },
+  getManagedCredentials: async (params?: { search?: string; status?: string }) => {
+    const response = await apiClient.get('/admin/managed-credentials', {
+      params,
+    });
+    return response.data;
+  },
+  createManagedCredential: async (payload: {
+    displayName: string;
+    assignedUserId: string;
+    deviceId: string;
+    deviceLabel?: string;
+    deviceKeyAlgorithm: string;
+    devicePublicKey: string;
+    networkZone: string;
+    locationLabel?: string;
+    locationCode?: string;
+    expiresAt?: string | null;
+    reason?: string;
+  }) => {
+    const response = await apiClient.post('/admin/managed-credentials', payload);
+    return response.data;
+  },
+  updateManagedCredential: async (id: string, payload: {
+    displayName?: string;
+    deviceLabel?: string | null;
+    networkZone?: string;
+    locationLabel?: string | null;
+    locationCode?: string | null;
+    expiresAt?: string | null;
+    reason?: string;
+  }) => {
+    const response = await apiClient.patch(`/admin/managed-credentials/${id}`, payload);
+    return response.data;
+  },
+  revokeManagedCredential: async (id: string, reason?: string) => {
+    const response = await apiClient.post(`/admin/managed-credentials/${id}/revoke`, { reason });
+    return response.data;
+  },
+  createServiceAccount: async (payload: {
+    displayName: string;
+    clientId?: string;
+    description?: string;
+    role?: string;
+    clearanceLevel?: string;
+    department?: string;
+    projectMemberships?: string[];
+    allowedNetworkZones?: string[];
+  }) => {
+    const response = await apiClient.post('/admin/service-accounts', payload);
+    return response.data;
+  },
+  rotateServiceAccountSecret: async (id: string) => {
+    const response = await apiClient.post(`/admin/service-accounts/${id}/rotate-secret`, {});
+    return response.data;
+  },
+  setServiceAccountActive: async (id: string, isActive: boolean, reason?: string) => {
+    const response = await apiClient.patch(`/admin/service-accounts/${id}/active`, {
+      isActive,
+      reason,
+    });
+    return response.data;
+  },
+  updateServiceAccount: async (id: string, payload: {
+    displayName?: string;
+    description?: string | null;
+    role?: string;
+    clearanceLevel?: string;
+    department?: string | null;
+    projectMemberships?: string[];
+    allowedNetworkZones?: string[];
+    reason?: string;
+  }) => {
+    const response = await apiClient.patch(`/admin/service-accounts/${id}`, payload);
     return response.data;
   },
   approveApproval: async (approvalId: string, reason?: string) => {
@@ -406,8 +618,25 @@ export const adminAPI = {
     const response = await apiClient.post('/admin/risk-rules', payload);
     return response.data;
   },
+  clearRiskRules: async () => {
+    const response = await apiClient.delete('/admin/risk-rules', { data: {} });
+    return response.data;
+  },
   getLogs: async () => {
     const response = await apiClient.get('/admin/logs');
+    return response.data;
+  },
+  getActivity: async (params?: {
+    function?: string;
+    source?: string;
+    result?: string;
+    actor?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+  }) => {
+    const response = await apiClient.get('/admin/activity', { params });
     return response.data;
   },
   getAlgos: async () => {
@@ -416,6 +645,38 @@ export const adminAPI = {
   },
   updateAlgo: async (id: string, enabled: boolean) => {
     const response = await apiClient.post('/admin/algos/update', { id, enabled });
+    return response.data;
+  },
+  getKeyGovernanceStatus: async () => {
+    const response = await apiClient.get('/admin/keys/status');
+    return response.data;
+  },
+  rotateAttestationSigner: async (payload?: {
+    reason?: string;
+    changeTicket?: string;
+    requestedBy?: string;
+    expectedPriorKeyId?: string;
+    runRecoveryTest?: boolean;
+  }) => {
+    const response = await apiClient.post('/admin/keys/attestation/rotate', payload || {});
+    return response.data;
+  },
+  rotateTransportKeys: async (payload?: {
+    reason?: string;
+    changeTicket?: string;
+    requestedBy?: string;
+    expectedPriorKemKeyId?: string;
+    expectedPriorIdentityKeyId?: string;
+    runRecoveryTest?: boolean;
+  }) => {
+    const response = await apiClient.post('/admin/keys/transport/rotate', payload || {});
+    return response.data;
+  },
+  runKeyRecoveryTests: async (payload?: {
+    scope?: 'attestation' | 'transport' | 'all';
+    requestedBy?: string;
+  }) => {
+    const response = await apiClient.post('/admin/keys/recovery-test', payload || {});
     return response.data;
   },
 };

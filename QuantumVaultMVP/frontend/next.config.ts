@@ -1,14 +1,16 @@
-import type { NextConfig } from "next";
+import path from 'path';
+import type { NextConfig } from 'next';
+
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/QuantumVaultMVP';
 
 const nextConfig: NextConfig = {
-  // Deploy app under a subpath
-  basePath: '/QuantumVaultMVP',
-
+  basePath,
+  outputFileTracingRoot: path.join(process.cwd(), '..'),
   async rewrites() {
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://127.0.0.1:13000/api/v1/:path*', // Proxy to backend
+        destination: 'http://127.0.0.1:13000/api/v1/:path*',
       },
     ];
   },

@@ -50,10 +50,12 @@ docker-compose up -d postgres redis vault blockchain
 ```bash
 cd ../contracts
 npm install
-npx hardhat compile
+npm run compile
 
 # Deploy to local blockchain
-npx hardhat run scripts/deploy.js --network localhost
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545 \
+BLOCKCHAIN_PRIVATE_KEY=<deployer-private-key> \
+npm run deploy
 
 # Copy the contract address output and update backend/.env:
 # ATTESTATION_CONTRACT_ADDRESS=<contract-address-here>
@@ -116,8 +118,10 @@ npm run start:dev
 ```bash
 cd ../contracts
 npm install
-npx hardhat compile
-npx hardhat run scripts/deploy.js --network localhost
+npm run compile
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545 \
+BLOCKCHAIN_PRIVATE_KEY=<deployer-private-key> \
+npm run deploy
 
 # Update backend .env with contract address
 ```
@@ -230,35 +234,30 @@ docker exec -it quantumvault-vault vault secrets enable -path=quantumvault kv-v2
 
 ## Blockchain Setup
 
-### Using Local Hardhat Network
+### Using Local EVM Network
 
-Default configuration uses Geth in dev mode. For Hardhat:
+Default configuration uses Geth in dev mode:
 
 ```bash
-cd contracts
-npx hardhat node
+cd infra
+docker-compose --profile evm up blockchain
 
 # In another terminal
-npx hardhat run scripts/deploy.js --network localhost
+cd ../contracts
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545 \
+BLOCKCHAIN_PRIVATE_KEY=<deployer-private-key> \
+npm run deploy
 ```
 
 ### Using External Network (Sepolia, etc.)
 
-Update `contracts/hardhat.config.js`:
-
-```javascript
-networks: {
-  sepolia: {
-    url: process.env.SEPOLIA_RPC_URL || "",
-    accounts: [process.env.PRIVATE_KEY || ""],
-  },
-}
-```
-
-Deploy:
+Deploy against any RPC endpoint by setting the deploy environment:
 
 ```bash
-npx hardhat run scripts/deploy.js --network sepolia
+cd contracts
+BLOCKCHAIN_RPC_URL=https://sepolia.infura.io/v3/<project-id> \
+BLOCKCHAIN_PRIVATE_KEY=<deployer-private-key> \
+npm run deploy
 ```
 
 ## Troubleshooting

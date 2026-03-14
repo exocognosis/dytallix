@@ -8,6 +8,13 @@ A production-ready Post-Quantum Cryptography (PQC) asset management platform tha
 - **Risk Scoring**: Deterministic 0-100 risk scores with intelligent classification based on exposure, sensitivity, and cryptographic algorithms
 - **PQC Wrapping**: Envelope encryption using **ML-KEM (NIST FIPS 203)** + HKDF-SHA256 + AES-256-GCM
 - **PQC Secure Transport**: Application-layer PQC session establishment (ML-KEM) with PQC-signed server identity (ML-DSA)
+- **Internal Secure Access**: Classification-bound asset registry, enterprise SSO token exchange, device/network aware access control, and short-lived decryption sessions
+- **Controlled Viewer**: Watermarked, no-store rendering path for L3/L4 sessions without returning raw decrypted payloads through the JSON API
+- **Service Account Identity**: Client-credential exchange for internal applications and workers, mapped into the same access-policy engine
+- **Immutable Access Ledger**: Signed audit chain with blockchain-anchored proofs for high-value access events
+- **SIEM Export Pipeline**: Queue-backed export of signed audit events to enterprise SIEM endpoints or Splunk HEC
+- **Enterprise Storage Backends**: Filesystem or S3-compatible encrypted payload storage with MinIO-ready local deployment
+- **Monitoring Stack**: Prometheus-compatible metrics plus Prometheus, Grafana, and OpenTelemetry Collector deployment artifacts
 - **HashiCorp Vault Integration**: Secure storage of sensitive key material with fail-fast validation
 - **Blockchain Attestation**: Immutable proof of remediation on EVM-compatible blockchain
 - **Policy Orchestrator**: Policy-driven evaluation + enforcement (wrap matched assets; optional anchor rotation/revocation; tenant/geo/regulatory constraints)
@@ -17,6 +24,7 @@ A production-ready Post-Quantum Cryptography (PQC) asset management platform tha
 ## Architecture
 
 ```
+├── agent/            # Managed endpoint agent for checkout / check-in
 ├── backend/          # NestJS + Fastify API server
 ├── frontend/         # React + TypeScript SPA
 ├── contracts/        # Solidity smart contracts (Hardhat)
@@ -30,19 +38,26 @@ A production-ready Post-Quantum Cryptography (PQC) asset management platform tha
 
 ### Backend
 - **Framework**: NestJS with Fastify adapter
-- **Language**: TypeScript (Node.js 20+)
+- **Language**: TypeScript (Node.js 22 LTS)
 - **Database**: PostgreSQL 15+ with Prisma ORM
 - **Queue**: BullMQ + Redis for asynchronous job processing
 - **Auth**: JWT with bcrypt password hashing, RBAC middleware
+- **Identity**: Enterprise JWKS validation, step-up evidence validation, device-attestation JWT validation, service-account client credentials
 - **Vault**: HashiCorp Vault for secrets management
 - **Blockchain**: Ethers.js v6 for EVM transactions
 
 ### Frontend
 - **Framework**: React + TypeScript
-- **Build Tool**: Vite or Next.js
+- **Build Tool**: Next.js
 - **UI Components**: shadcn/ui
 - **Charts**: Recharts
 - **Styling**: Tailwind CSS
+
+### Managed Endpoint Agent
+- **Runtime**: Node.js 22 LTS CLI
+- **Crypto**: ML-KEM decapsulation and ML-DSA detached-signature verification via liboqs
+- **Storage**: Local secure profile store with protected workspaces and best-effort secure cleanup
+- **Validation**: `python3 scripts/local/managed-endpoint-e2e.py` exercises local enrollment, checkout, edit, check-in, and audit verification
 
 ### Smart Contracts
 - **Platform**: EVM (Ethereum Virtual Machine)
@@ -54,14 +69,16 @@ A production-ready Post-Quantum Cryptography (PQC) asset management platform tha
 - **Containerization**: Docker + Docker Compose
 - **Database**: PostgreSQL 15
 - **Cache/Queue**: Redis 7
+- **Object Storage**: Filesystem or S3-compatible storage (MinIO in local compose)
 - **Secrets**: HashiCorp Vault
 - **Blockchain Node**: Geth (dev mode) or external RPC
+- **Observability**: Prometheus, Grafana, and OpenTelemetry Collector
 
 ## Quick Start
 
 ### Prerequisites
 - Docker & Docker Compose
-- Node.js 20+ (for local development)
+- Node.js 22 LTS (for local development and the managed endpoint agent)
 - npm or yarn
 
 ### Option 1: Docker Compose (Recommended)
@@ -107,14 +124,43 @@ npm run start:dev
 # 3. Deploy contracts
 cd ../contracts
 npm install
-npx hardhat compile
-npx hardhat run scripts/deploy.js --network localhost
+npm run compile
+BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545 \
+BLOCKCHAIN_PRIVATE_KEY=<deployer-private-key> \
+npm run deploy
 # Copy the contract address to backend .env
 
 # 4. Set up frontend
 cd ../frontend
 npm install
 npm run dev
+
+# 5. Set up the managed endpoint agent
+cd ../agent
+npm install
+npm run build
+```
+
+### Managed Endpoint Flow Validation
+
+```bash
+cd QuantumVaultMVP
+python3 scripts/local/managed-endpoint-e2e.py
+```
+
+This runs the local PQC pipeline, issues a managed device credential, performs checkout/open/check-in through `agent/`, and writes a result bundle to `.secure/local-services/e2e/managed-endpoint/<run>/result.json`.
+
+To enable enterprise token exchange for the internal access-control flow, set `ENTERPRISE_IDP_JWKS_URL` and the matching issuer/audience variables in `backend/.env` before starting the backend. If L4 step-up or L3/L4 device-attestation evidence is enforced from your IdP/MDM, also set `ENTERPRISE_STEP_UP_*` and `DEVICE_ATTESTATION_*`.
+
+To run encrypted payload storage on S3-compatible object storage instead of local disk, set:
+
+```bash
+STORAGE_BACKEND=s3
+OBJECT_STORAGE_BUCKET=quantumvault
+OBJECT_STORAGE_ENDPOINT=http://localhost:9000
+OBJECT_STORAGE_ACCESS_KEY_ID=quantumvault
+OBJECT_STORAGE_SECRET_ACCESS_KEY=changeme_minio_secret
+OBJECT_STORAGE_FORCE_PATH_STYLE=true
 ```
 
 ## Development Seed Users
@@ -133,6 +179,8 @@ The backend exposes a RESTful API under `/api/v1`:
 
 ### Authentication
 - `POST /api/v1/auth/login` - Login with email/password
+- `POST /api/v1/auth/enterprise/exchange` - Exchange an enterprise IdP JWT for a QuantumVault session
+- `POST /api/v1/auth/service-account/token` - Exchange internal client credentials for a QuantumVault session
 - `GET /api/v1/auth/me` - Get current user profile
 - `POST /api/v1/auth/logout` - Logout and invalidate session
 
@@ -183,7 +231,30 @@ The backend exposes a RESTful API under `/api/v1`:
 - `GET /api/v1/dashboard/migration-timeline` - Get migration timeline
 - `POST /api/v1/dashboard/snapshot` - Capture current snapshot
 
-For detailed API documentation, see [docs/API.md](docs/API.md)
+### Internal Secure Access
+- `GET /api/v1/access/policy-matrix` - Retrieve the classification policy matrix
+- `GET /api/v1/access/assets` - Browse the asset registry produced by the ingress pipeline
+- `PATCH /api/v1/access/assets/:id/legal-hold` - Apply or remove legal hold
+- `POST /api/v1/access/requests` - Submit an access request for a protected asset
+- `POST /api/v1/access/requests/:id/activate` - Activate an approved request and mint a short-lived session
+- `GET /api/v1/access/sessions` - List active and expired access sessions
+- `POST /api/v1/access/sessions/:id/view` - Materialize session-scoped content for controlled viewing
+- `GET /api/v1/access/agent/trust-bundle` - Retrieve the public attestation verifier bundle for managed endpoints
+- `POST /api/v1/access/agent/sessions/:id/checkin` - Upload edited content back through the managed endpoint path
+- `GET /api/v1/access/sessions/:id/viewer` - Render the hardened controlled-viewer HTML for L3/L4 sessions
+- `POST /api/v1/access/sessions/:id/close` - Revoke a session and remove decryption capability
+- `GET /api/v1/access/monitoring/summary` - Monitoring counters and classification posture
+- `GET /api/v1/access/audit` - Signed access-ledger events
+
+### Monitoring
+- `GET /api/v1/monitoring/metrics` - Prometheus-format service metrics
+- `GET /api/v1/monitoring/runtime` - Runtime health summary for storage, blockchain, and queues
+- `GET /api/v1/storage/backend` - Active encrypted-payload storage backend status
+- `GET /api/v1/admin/runtime` - Admin runtime summary including queue, storage, and service-account posture
+- `GET /api/v1/admin/service-accounts` - List internal service accounts
+- `POST /api/v1/admin/service-accounts` - Create an internal service account and return its initial client secret
+
+For detailed API and workflow documentation, see [docs/API.md](docs/API.md) and [docs/INTERNAL_SECURE_ACCESS.md](docs/INTERNAL_SECURE_ACCESS.md).
 
 ## Environment Variables
 
@@ -197,6 +268,15 @@ See `.env.example` files in `backend/` and `frontend/` directories for all confi
 - `VAULT_AUTH_METHOD`: Vault auth mode (`approle`, `kubernetes`, or `token`)
 - `VAULT_ROLE_ID` / `VAULT_SECRET_ID`: Required for AppRole auth
 - `VAULT_TOKEN`: Optional fallback for local token auth
+- `ENTERPRISE_IDP_JWKS_URL`: Enterprise IdP JWKS endpoint for Azure AD / Okta / AD-backed federation
+- `ENTERPRISE_IDP_ISSUER` / `ENTERPRISE_IDP_AUDIENCE`: JWT validation constraints for enterprise exchange
+- `ENTERPRISE_STEP_UP_*`: Optional step-up JWKS / issuer / audience validation for L4 access evidence
+- `DEVICE_ATTESTATION_*`: Optional device-attestation JWKS / issuer / audience validation for L3/L4 posture evidence
+- `ACCESS_AUDIT_ANCHOR_EVENTS`: Optional comma-separated access event types to anchor on-chain
+- `SIEM_EXPORT_*`: Queue-backed export of signed access-ledger events to enterprise SIEM endpoints
+- `STORAGE_BACKEND`: `filesystem` or `s3`
+- `OBJECT_STORAGE_*`: S3-compatible object storage configuration
+- `MONITORING_BEARER_TOKEN`: Internal scrape token for `/api/v1/monitoring/*`
 - `ATTESTATION_KEY_BOOTSTRAP_ALLOWED` / `TRANSPORT_KEYS_BOOTSTRAP_ALLOWED`: Bootstrap guardrails for key provisioning
 - `ATTESTATION_SIGNER_KEY_ID_PIN` / `ATTESTATION_SIGNER_KEY_HASH_PIN`: Attestation signer continuity pinning
 - `TRANSPORT_KEM_KEY_ID_PIN` / `TRANSPORT_KEM_KEY_HASH_PIN`: Transport KEM key pinning
@@ -206,7 +286,7 @@ See `.env.example` files in `backend/` and `frontend/` directories for all confi
 - `JWT_SECRET`: Secret for JWT signing (must be strong and non-default)
 
 **Frontend:**
-- `VITE_API_URL`: Backend API URL
+- `NEXT_PUBLIC_API_URL`: Backend API URL
 
 ## Security Notes
 
@@ -227,7 +307,7 @@ Run the rollout script to rotate runtime secrets, redeploy the attestation contr
 ```bash
 # terminal 1
 cd contracts
-npx hardhat node
+docker-compose -f ../infra/docker-compose.yml --profile evm up blockchain
 
 # terminal 2
 cd ..
@@ -340,8 +420,9 @@ QuantumVaultMVP/
 │   ├── contracts/
 │   │   └── QuantumVaultAttestation.sol
 │   ├── scripts/
+│   │   ├── compile.js
 │   │   └── deploy.js
-│   └── hardhat.config.js
+│   └── package.json
 ├── infra/
 │   ├── docker-compose.yml     # Full stack orchestration
 │   └── helm/                  # Kubernetes charts (optional)

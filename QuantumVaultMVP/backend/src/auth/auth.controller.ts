@@ -57,7 +57,7 @@ export class AuthController {
     @Request() req,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const result = await this.authService.login(req.user);
+    const result = await this.authService.login(req.user, this.authService.buildLocalSessionContext(req));
     const secureCookie = this.shouldUseSecureCookie(req);
 
     res.header('Set-Cookie', buildAuthCookie(result.access_token, result.expiresAt, secureCookie));
@@ -72,13 +72,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@Request() req) {
-    return {
-      id: req.user.id,
-      email: req.user.email,
-      role: req.user.role,
-      createdAt: req.user.createdAt,
-      lastLoginAt: req.user.lastLoginAt,
-    };
+    return this.authService.getProfileForRequest(req);
   }
 
   @Post('logout')
@@ -88,5 +82,41 @@ export class AuthController {
 
     res.header('Set-Cookie', buildClearedAuthCookie(secureCookie));
     return this.authService.logout(token);
+  }
+
+  @Post('enterprise/exchange')
+  async exchangeEnterpriseToken(
+    @Body() body: { idToken: string },
+    @Request() req,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const result = await this.authService.exchangeEnterpriseToken(body.idToken, req);
+    const secureCookie = this.shouldUseSecureCookie(req);
+
+    res.header('Set-Cookie', buildAuthCookie(result.access_token, result.expiresAt, secureCookie));
+
+    return {
+      access_token: result.access_token,
+      user: result.user,
+      expiresAt: result.expiresAt,
+    };
+  }
+
+  @Post('service-account/token')
+  async exchangeServiceAccountToken(
+    @Body() body: { clientId: string; clientSecret: string },
+    @Request() req,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const result = await this.authService.exchangeServiceAccountCredentials(body.clientId, body.clientSecret, req);
+    const secureCookie = this.shouldUseSecureCookie(req);
+
+    res.header('Set-Cookie', buildAuthCookie(result.access_token, result.expiresAt, secureCookie));
+
+    return {
+      access_token: result.access_token,
+      user: result.user,
+      expiresAt: result.expiresAt,
+    };
   }
 }

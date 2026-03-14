@@ -12,7 +12,7 @@ import {
   RiskLevel,
 } from '@prisma/client';
 import * as crypto from 'crypto';
-import { getMlDsa65, MlDsaKeyPair, MlDsa65 } from '../crypto/mldsa';
+import { getMlDsa65, ML_DSA_65_ALGORITHM, MlDsaKeyPair, MlDsa65 } from '../crypto/mldsa';
 import { canonicalJsonSha256Hex, canonicalJsonStringify } from '../crypto/canonical-json';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
@@ -195,6 +195,44 @@ export class AttestationService implements OnModuleInit {
     };
   }
 
+  async getVerifierBundle() {
+    this.ensureReady();
+    const identity = this.getSignerIdentity();
+    return {
+      protocolVersion: ATTESTATION_PROTOCOL_VERSION,
+      signingEnvelopeVersion: `${ATTESTATION_PROTOCOL_VERSION}.signing`,
+      algorithm: ML_DSA_65_ALGORITHM,
+      signerKeyId: identity.signerKeyId,
+      signerKeyHashHex: identity.signerKeyHashHex,
+      publicKeyBase64: Buffer.from(this.keys.publicKey).toString('base64'),
+      exportedAt: new Date().toISOString(),
+    };
+  }
+
+  async signDigest(domain: string, digestHex: string) {
+    this.ensureReady();
+    const normalizedDigest = this.normalizeHex(digestHex);
+    const signingDigest = canonicalJsonSha256Hex({
+      protocolVersion: `${ATTESTATION_PROTOCOL_VERSION}.signing`,
+      domain,
+      digest: normalizedDigest,
+    });
+    const messageBytes = new Uint8Array(Buffer.from(signingDigest, 'hex'));
+    const signature = await this.dsa.sign(messageBytes, this.keys.secretKey);
+    const isValid = await this.dsa.verify(messageBytes, signature, this.keys.publicKey);
+    if (!isValid) {
+      throw new Error('Attestation signer self-verification failed for detached digest signature');
+    }
+
+    return {
+      algorithm: ML_DSA_65_ALGORITHM,
+      domain,
+      signingDigestHex: `0x${signingDigest}`,
+      signatureHex: `0x${Buffer.from(signature).toString('hex')}`,
+      ...this.getSignerIdentity(),
+    };
+  }
+
   async runSignerRecoveryTest() {
     this.ensureReady();
     const stored = (await this.vaultService.read(ATTESTATION_KEY_VAULT_PATH)) as AttestationKeyRecord;
@@ -353,20 +391,22 @@ export class AttestationService implements OnModuleInit {
     return (RISK_LEVEL_RANK[riskLevel] ?? 0) >= (RISK_LEVEL_RANK[rule.requireApprovalAtRiskLevel] ?? 0);
   }
 
-  private async ensureAdminRiskRuleRecord() {
-    return this.prisma.adminRiskRule.upsert({
+  private async getAdminRiskRuleRecord() {
+    const rule = await this.prisma.adminRiskRule.findUnique({
       where: { ruleKey: 'default' },
-      create: {
-        ruleKey: 'default',
-        maxRiskScoreAutoApprove: 70,
-        requireApprovalAtRiskLevel: 'HIGH',
-        maxAssetsPerRun: 1000,
-        isActive: true,
-      },
-      update: {
-        isActive: true,
-      },
     });
+    if (
+      !rule
+      || (
+        !rule.updatedByUserId
+        && rule.maxRiskScoreAutoApprove === 70
+        && rule.requireApprovalAtRiskLevel === 'HIGH'
+        && rule.maxAssetsPerRun === 1000
+      )
+    ) {
+      return null;
+    }
+    return rule;
   }
 
   private async createOrRequireApproval(params: {
@@ -379,7 +419,13 @@ export class AttestationService implements OnModuleInit {
     requestedByUserId?: string | null;
     requestContext?: Record<string, unknown>;
   }): Promise<{ allowed: boolean; message?: string; approvalId?: string }> {
-    const rule = await this.ensureAdminRiskRuleRecord();
+    const rule = await this.getAdminRiskRuleRecord();
+    if (!rule) {
+      return {
+        allowed: false,
+        message: 'Admin risk rules are not configured. Configure Risk Rules before submitting attestation jobs.',
+      };
+    }
     if (!this.shouldRequireApproval(rule, params.riskScore, params.riskLevel)) {
       return { allowed: true };
     }

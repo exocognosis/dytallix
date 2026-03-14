@@ -5,7 +5,7 @@
  * Endpoints:
  * - POST /upload - Upload encrypted file (returns URI)
  * - GET /asset/:uri - Get asset metadata
- * - POST /register - Register asset on-chain (mock)
+ * - POST /register - Register asset on-chain with a signed data transaction
  * - GET /verify/:assetId - Verify asset on-chain
  */
 
@@ -59,10 +59,17 @@ app.use(express.json());
 // Storage configuration
 const STORAGE_DIR = join(__dirname, 'storage');
 const METADATA_FILE = join(__dirname, 'metadata.json');
+const REGISTRY_FILE = join(__dirname, 'registry.json');
+const SERVICE_WALLET_FILE = join(__dirname, 'service-wallet.json');
+const SERVICE_WALLET_PREFIX = (process.env.QV_ADDRESS_PREFIX || 'dytallix').trim() || 'dytallix';
+const MIN_SERVICE_WALLET_BALANCE_UDGT = Number(process.env.QV_MIN_WALLET_BALANCE_UDGT || 5_000_000);
+const SERVICE_WALLET_FAUCET_TOP_UP_DGT = Number(process.env.QV_SERVICE_WALLET_TOP_UP_DGT || 25);
+const ANCHOR_TX_FEE = Number(process.env.QV_ANCHOR_TX_FEE || 1000);
+const ANCHOR_TX_MEMO = process.env.QV_ANCHOR_TX_MEMO || 'QuantumVault proof anchor';
 
 // In-memory storage for POC (use database in production)
 let metadata = {};
-let onChainRegistry = {}; // Mock on-chain storage
+let onChainRegistry = {};
 let assetIdCounter = 1;
 
 // Initialize filesystem-backed storage asynchronously to avoid startup hangs
@@ -76,6 +83,19 @@ async function initStorage() {
   } catch (err) {
     console.log('[QuantumVault] No existing metadata, starting fresh');
   }
+
+  try {
+    const data = await fs.readFile(REGISTRY_FILE, 'utf-8');
+    onChainRegistry = JSON.parse(data);
+    const maxNumericRegistryId = Object.keys(onChainRegistry)
+      .map((key) => Number(key))
+      .filter((value) => Number.isFinite(value))
+      .reduce((max, value) => Math.max(max, value), 0);
+    assetIdCounter = maxNumericRegistryId + 1;
+    console.log(`[QuantumVault] Loaded ${Object.keys(onChainRegistry).length} anchored proofs from registry`);
+  } catch (err) {
+    console.log('[QuantumVault] No existing anchor registry, starting fresh');
+  }
 }
 
 initStorage().catch((err) => {
@@ -85,6 +105,332 @@ initStorage().catch((err) => {
 // Save metadata helper
 async function saveMetadata() {
   await fs.writeFile(METADATA_FILE, JSON.stringify(metadata, null, 2));
+}
+
+async function saveRegistry() {
+  await fs.writeFile(REGISTRY_FILE, JSON.stringify(onChainRegistry, null, 2));
+}
+
+function deriveAddressFromPublicKey(publicKeyBase64, prefix = SERVICE_WALLET_PREFIX) {
+  const publicKey = Buffer.from(publicKeyBase64, 'base64');
+  const sha = createHash('sha256').update(publicKey).digest();
+  const ripe = createHash('ripemd160').update(sha).digest('hex');
+  return `${prefix}1${ripe}`;
+}
+
+function extractUdgtBalance(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return 0;
+  }
+
+  const udgtBalance = payload?.balances?.udgt?.balance ?? payload?.balances?.udgt;
+  if (typeof udgtBalance === 'string' || typeof udgtBalance === 'number') {
+    const parsed = Number(udgtBalance);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  if (typeof payload.legacy_balance === 'string' || typeof payload.legacy_balance === 'number') {
+    const parsed = Number(payload.legacy_balance);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  if (typeof payload.balance === 'string' || typeof payload.balance === 'number') {
+    const parsed = Number(payload.balance);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
+async function fetchJson(url, init, fallbackMessage) {
+  const response = await fetch(url, init);
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(fallbackMessage || `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ''}`);
+  }
+  return response.json();
+}
+
+async function loadServiceWallet() {
+  if (process.env.QV_PRIVATE_KEY && process.env.QV_PUBLIC_KEY) {
+    return {
+      privateKey: process.env.QV_PRIVATE_KEY,
+      publicKey: process.env.QV_PUBLIC_KEY,
+      address: process.env.QV_ADDRESS || deriveAddressFromPublicKey(process.env.QV_PUBLIC_KEY),
+      source: 'env',
+    };
+  }
+
+  try {
+    const persisted = JSON.parse(await fs.readFile(SERVICE_WALLET_FILE, 'utf-8'));
+    if (persisted?.privateKey && persisted?.publicKey && persisted?.address) {
+      return { ...persisted, source: 'disk' };
+    }
+  } catch {
+    // fall through to wallet creation
+  }
+
+  return null;
+}
+
+async function saveServiceWallet(wallet) {
+  await fs.writeFile(SERVICE_WALLET_FILE, JSON.stringify(wallet, null, 2), { mode: 0o600 });
+  try {
+    await fs.chmod(SERVICE_WALLET_FILE, 0o600);
+  } catch {
+    // ignore chmod failures on non-posix filesystems
+  }
+}
+
+async function ensureServiceWallet(blockchainUrl) {
+  const existing = await loadServiceWallet();
+  if (existing) {
+    return existing;
+  }
+
+  const created = await fetchJson(
+    `${blockchainUrl}/wallet/create`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    },
+    'Failed to create QuantumVault service wallet'
+  );
+
+  const wallet = {
+    privateKey: created.private_key,
+    publicKey: created.public_key,
+    address: deriveAddressFromPublicKey(created.public_key),
+    algorithm: created.algorithm,
+    version: created.version,
+    createdAt: new Date().toISOString(),
+  };
+
+  await saveServiceWallet(wallet);
+  console.log(`[QuantumVault] Created persistent service wallet ${wallet.address}`);
+  return wallet;
+}
+
+async function ensureServiceWalletFunding(wallet, blockchainUrl) {
+  const balancePayload = await fetchJson(
+    `${blockchainUrl}/balance/${encodeURIComponent(wallet.address)}?denom=udgt`,
+    undefined,
+    `Failed to fetch QuantumVault service wallet balance for ${wallet.address}`
+  );
+  const balance = extractUdgtBalance(balancePayload);
+
+  if (balance >= MIN_SERVICE_WALLET_BALANCE_UDGT) {
+    return balance;
+  }
+
+  console.log(`[QuantumVault] Funding service wallet ${wallet.address} via dev faucet`);
+  await fetchJson(
+    `${blockchainUrl}/dev/faucet`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address: wallet.address,
+        dgt_amount: SERVICE_WALLET_FAUCET_TOP_UP_DGT,
+        drt_amount: 0
+      })
+    },
+    `Failed to fund QuantumVault service wallet ${wallet.address}`
+  );
+
+  const refreshedBalancePayload = await fetchJson(
+    `${blockchainUrl}/balance/${encodeURIComponent(wallet.address)}?denom=udgt`,
+    undefined,
+    `Failed to re-check QuantumVault service wallet balance for ${wallet.address}`
+  );
+
+  return extractUdgtBalance(refreshedBalancePayload);
+}
+
+async function getChainStatus(blockchainUrl) {
+  return fetchJson(`${blockchainUrl}/status`, undefined, `Failed to fetch blockchain status from ${blockchainUrl}`);
+}
+
+async function getAccountNonce(address, blockchainUrl) {
+  const account = await fetchJson(
+    `${blockchainUrl}/account/${encodeURIComponent(address)}`,
+    undefined,
+    `Failed to fetch account nonce for ${address}`
+  );
+  return Number(account?.nonce || 0);
+}
+
+async function signAnchorTransaction(tx, wallet, blockchainUrl) {
+  return fetchJson(
+    `${blockchainUrl}/wallet/sign`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tx,
+        public_key: wallet.publicKey,
+        private_key: wallet.privateKey
+      })
+    },
+    'Failed to sign QuantumVault anchor transaction'
+  );
+}
+
+async function submitAnchorTransaction(signedTransaction, blockchainUrl) {
+  return fetchJson(
+    `${blockchainUrl}/submit`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(signedTransaction)
+    },
+    'Failed to submit QuantumVault anchor transaction'
+  );
+}
+
+async function waitForTransactionConfirmation(txHash, blockchainUrl, maxAttempts = 20, delayMs = 1000) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const receipt = await fetchJson(
+        `${blockchainUrl}/tx/${encodeURIComponent(txHash)}`,
+        undefined,
+        `Failed to fetch transaction ${txHash}`
+      );
+      const status = String(receipt?.status || '').toLowerCase();
+      if (status === 'failed' || receipt?.success === false) {
+        throw new Error(receipt?.error || `Transaction ${txHash} failed`);
+      }
+      if (status === 'success' || receipt?.success === true || receipt?.block_height) {
+        return receipt;
+      }
+    } catch (error) {
+      if (attempt === maxAttempts - 1) {
+        throw error;
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+
+  throw new Error(`Timed out waiting for QuantumVault anchor transaction ${txHash} to confirm`);
+}
+
+async function fetchConfirmedTransactionRecord(txHash, blockHeight, blockchainUrl) {
+  const block = await fetchJson(
+    `${blockchainUrl}/block/${blockHeight}`,
+    undefined,
+    `Failed to fetch block ${blockHeight} for transaction ${txHash}`
+  );
+
+  const tx = Array.isArray(block?.txs)
+    ? block.txs.find((candidate) => candidate?.hash === txHash)
+    : null;
+
+  if (!tx) {
+    throw new Error(`Transaction ${txHash} was not found in block ${blockHeight}`);
+  }
+
+  return tx;
+}
+
+function parseDataMessage(transaction) {
+  const messages = Array.isArray(transaction?.messages) ? transaction.messages : [];
+  const dataMessage = messages.find((message) => message?.type === 'data' && typeof message?.data === 'string');
+
+  if (!dataMessage) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(dataMessage.data);
+  } catch {
+    return null;
+  }
+}
+
+async function verifyAnchorOnChain(entry, blockchainUrl) {
+  if (!entry?.txHash) {
+    return { verified: false, reason: 'missing_tx_hash' };
+  }
+
+  const receipt = await fetchJson(
+    `${blockchainUrl}/tx/${encodeURIComponent(entry.txHash)}`,
+    undefined,
+    `Failed to fetch transaction receipt for ${entry.txHash}`
+  );
+  if (String(receipt?.status || '').toLowerCase() === 'failed' || receipt?.success === false) {
+    return { verified: false, reason: 'transaction_failed', receipt };
+  }
+  const blockHeight = Number(receipt?.block_height || entry?.blockHeight || 0);
+  if (!blockHeight) {
+    return { verified: false, reason: 'transaction_not_confirmed', receipt };
+  }
+
+  const tx = await fetchConfirmedTransactionRecord(entry.txHash, blockHeight, blockchainUrl);
+  const payload = parseDataMessage(tx);
+  const anchoredPayloadHash = payload?.payloadHash || payload?.blake3Hash || payload?.blake3 || null;
+  const expectedPayloadHash = String(entry?.payloadHash || entry?.blake3Hash || entry?.blake3 || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^0x/i, '');
+  const verified = Boolean(
+    anchoredPayloadHash &&
+    String(anchoredPayloadHash).trim().toLowerCase().replace(/^0x/i, '') === expectedPayloadHash
+  );
+
+  return {
+    verified,
+    blockHeight,
+    receipt,
+    tx,
+    payload,
+    reason: verified ? null : 'payload_hash_mismatch'
+  };
+}
+
+async function anchorPayloadToChain(anchorPayload, blockchainUrl) {
+  const wallet = await ensureServiceWallet(blockchainUrl);
+  const fundedBalance = await ensureServiceWalletFunding(wallet, blockchainUrl);
+
+  if (fundedBalance < MIN_SERVICE_WALLET_BALANCE_UDGT) {
+    throw new Error(`QuantumVault service wallet ${wallet.address} balance is below the minimum threshold`);
+  }
+
+  const status = await getChainStatus(blockchainUrl);
+  const nonce = await getAccountNonce(wallet.address, blockchainUrl);
+  const anchorTx = {
+    chain_id: status?.chain_id || 'dyt-local-1',
+    nonce,
+    msgs: [{
+      type: 'data',
+      from: wallet.address,
+      data: JSON.stringify(anchorPayload)
+    }],
+    fee: String(ANCHOR_TX_FEE),
+    memo: ANCHOR_TX_MEMO
+  };
+
+  const signedTransaction = await signAnchorTransaction(anchorTx, wallet, blockchainUrl);
+  const submitted = await submitAnchorTransaction(signedTransaction, blockchainUrl);
+  const txHash = submitted?.hash || submitted?.tx_hash;
+
+  if (!txHash) {
+    throw new Error('Blockchain submission succeeded but no transaction hash was returned');
+  }
+
+  const receipt = await waitForTransactionConfirmation(txHash, blockchainUrl);
+  const blockHeight = Number(receipt?.block_height || 0);
+  const tx = await fetchConfirmedTransactionRecord(txHash, blockHeight, blockchainUrl);
+
+  return {
+    wallet,
+    txHash,
+    blockHeight,
+    receipt,
+    tx,
+    anchorPayload
+  };
 }
 
 // Configure multer for file uploads
@@ -301,100 +647,50 @@ app.get('/download/:assetHash', async (req, res) => {
  */
 app.post('/register', async (req, res) => {
   try {
-    const { blake3, uri, metadata } = req.body;
+    const { blake3, uri, metadata: assetMetadata } = req.body;
 
     if (!blake3 || !uri) {
       return res.status(400).json({ error: 'Missing blake3 or uri' });
     }
 
-    // Get blockchain URL
     const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL ||
       process.env.VITE_BLOCKCHAIN_URL ||
       'http://localhost:3003';
 
-    // Import transaction signer (CLI-based)
-    const { submitDataTransaction, getAccountNonce, loadWallet } = await import('./tx-signer-cli.js');
-
-    // Load service wallet
-    const wallet = loadWallet();
-
-    // Get current nonce
-    const nonce = await getAccountNonce(wallet.address, BLOCKCHAIN_API_URL);
-
-    // Get chain ID from blockchain
-    let chainId = 'dyt-local-1';
-    try {
-      const statusRes = await fetch(`${BLOCKCHAIN_API_URL}/status`);
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        chainId = statusData.chain_id || chainId;
-      }
-    } catch (err) {
-      console.warn('[QuantumVault] Could not fetch chain ID, using default:', chainId);
-    }
-
-    // Prepare registration data
     const registrationData = {
       type: 'quantumvault_registration',
-      assetHash: blake3,
+      payloadHash: blake3,
+      blake3Hash: blake3,
       uri: uri,
-      metadata: metadata || {
+      metadata: assetMetadata || {
         registered_by: 'quantumvault-api',
         timestamp: new Date().toISOString()
       }
     };
 
-    // Submit transaction to blockchain
-    console.log(`[QuantumVault] Registering asset ${blake3} from ${wallet.address}`);
+    const anchored = await anchorPayloadToChain(registrationData, BLOCKCHAIN_API_URL);
 
-    const txResult = await submitDataTransaction({
-      from: wallet.address,
-      data: registrationData,
-      chainId,
-      nonce,
-      fee: 1000, // 1000 micro-units fee
-      walletPath: wallet.walletPath,
-      rpcUrl: BLOCKCHAIN_API_URL
-    });
-
-    const txHash = txResult.hash || txResult.tx_hash;
-
-    if (!txHash) {
-      throw new Error('Transaction submitted but no hash returned');
-    }
-
-    // Get block height
-    let blockHeight = 0;
-    try {
-      const statusRes = await fetch(`${BLOCKCHAIN_API_URL}/status`);
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        blockHeight = statusData.latest_height || statusData.height || 0;
-      }
-    } catch (err) {
-      console.warn('[QuantumVault] Could not get blockchain height:', err.message);
-    }
-
-    // Generate asset ID
     const assetId = assetIdCounter++;
-
-    // Store in registry
     onChainRegistry[assetId] = {
       assetId,
-      blake3,
+      blake3Hash: blake3,
+      payloadHash: blake3,
       uri,
-      owner: wallet.address,
+      owner: anchored.wallet.address,
       timestamp: Math.floor(Date.now() / 1000),
-      txHash,
-      blockHeight
+      txHash: anchored.txHash,
+      blockHeight: anchored.blockHeight,
+      status: 'confirmed',
+      anchoredAt: new Date().toISOString()
     };
+    await saveRegistry();
 
-    console.log(`[QuantumVault] ✅ Registered asset on blockchain: ${blake3}, tx: ${txHash}`);
+    console.log(`[QuantumVault] ✅ Registered asset on blockchain: ${blake3}, tx: ${anchored.txHash}`);
 
     res.json({
-      txHash,
+      txHash: anchored.txHash,
       assetId,
-      blockHeight,
+      blockHeight: anchored.blockHeight,
       timestamp: Math.floor(Date.now() / 1000),
       success: true
     });
@@ -414,59 +710,63 @@ app.post('/register', async (req, res) => {
  */
 app.get('/verify/:assetHash', async (req, res) => {
   try {
-    const assetHash = req.params.assetHash;
-
-    // Get blockchain URL
+    const assetHash = String(req.params.assetHash || '').trim();
     const BLOCKCHAIN_API_URL = process.env.BLOCKCHAIN_API_URL ||
       process.env.VITE_BLOCKCHAIN_URL ||
       'http://localhost:3003';
 
-    // Search for transactions containing this asset hash
-    // Try to find the transaction by searching recent blocks
     console.log(`[QuantumVault] Verifying asset hash: ${assetHash}`);
 
-    // First check our local registry
     let foundAsset = null;
     for (const [assetId, asset] of Object.entries(onChainRegistry)) {
-      if (asset.blake3 === assetHash || asset.assetId === assetHash) {
-        foundAsset = asset;
+      const normalizedRegistryHash = String(
+        asset?.payloadHash || asset?.blake3Hash || asset?.blake3 || asset?.assetHash || ''
+      ).trim().toLowerCase().replace(/^0x/i, '');
+      const normalizedSearchHash = assetHash.toLowerCase().replace(/^0x/i, '');
+
+      if (normalizedRegistryHash === normalizedSearchHash || String(assetId) === assetHash) {
+        foundAsset = { assetId, ...asset };
         break;
       }
     }
 
-    if (foundAsset) {
-      // Verify the transaction exists on-chain
-      try {
-        const txResponse = await fetch(`${BLOCKCHAIN_API_URL}/tx/${foundAsset.txHash}`);
-
-        if (txResponse.ok) {
-          const txData = await txResponse.json();
-
-          res.json({
-            verified: true,
-            asset_id: foundAsset.assetId,
-            tx_hash: foundAsset.txHash,
-            block_height: foundAsset.blockHeight || txData.block_height,
-            timestamp: foundAsset.timestamp,
-            owner: foundAsset.owner,
-            metadata: {
-              verification_time: new Date().toISOString(),
-              status: 'verified',
-              blockchain_status: txData.status || 'confirmed'
-            }
-          });
-          return;
-        }
-      } catch (txError) {
-        console.warn('[QuantumVault] Transaction lookup failed:', txError.message);
-      }
+    if (!foundAsset) {
+      return res.status(404).json({
+        verified: false,
+        error: 'Asset not found on blockchain',
+        asset_hash: assetHash
+      });
     }
 
-    // Asset not found in registry or blockchain
-    res.status(404).json({
-      verified: false,
-      error: 'Asset not found on blockchain',
-      asset_hash: assetHash
+    const verification = await verifyAnchorOnChain({
+      txHash: foundAsset.txHash,
+      blockHeight: foundAsset.blockHeight,
+      blake3Hash: foundAsset.payloadHash || foundAsset.blake3Hash || foundAsset.blake3
+    }, BLOCKCHAIN_API_URL);
+
+    if (!verification.verified) {
+      return res.status(409).json({
+        verified: false,
+        error: 'Asset registry entry exists but failed on-chain verification',
+        asset_hash: assetHash,
+        tx_hash: foundAsset.txHash,
+        details: verification.reason
+      });
+    }
+
+    res.json({
+      verified: true,
+      asset_id: foundAsset.assetId,
+      tx_hash: foundAsset.txHash,
+      block_height: verification.blockHeight,
+      timestamp: foundAsset.timestamp || foundAsset.anchoredAt,
+      owner: foundAsset.owner,
+      payload_hash: foundAsset.payloadHash || foundAsset.blake3Hash || foundAsset.blake3,
+      metadata: {
+        verification_time: new Date().toISOString(),
+        status: 'verified',
+        blockchain_status: verification.receipt?.status || 'confirmed'
+      }
     });
 
   } catch (error) {
@@ -544,8 +844,7 @@ app.post('/proof/generate', async (req, res) => {
 
 /**
  * POST /anchor
- * Anchor a proof to the Dytallix blockchain using the Asset Registry
- * Uses the blockchain's /asset/register endpoint to create an immutable on-chain record
+ * Anchor a proof to the Dytallix blockchain with a signed data transaction.
  */
 app.post('/anchor', async (req, res) => {
   try {
@@ -568,130 +867,48 @@ app.post('/anchor', async (req, res) => {
 
     console.log(`[QuantumVault] Anchoring proof ${proofId} to blockchain at ${blockchainUrl}`);
 
-    // Prepare anchor data for blockchain asset registry
     const anchorData = {
       type: 'quantumvault_proof',
-      proofId: proofId,
-      blake3Hash: proof.blake3Hash,
-      filename: proof.filename,
-      timestamp: proof.timestamp,
-      signature: proof.signature,
-      service: 'QuantumVault',
+      proofId,
+      payloadHash: proof.blake3Hash,
+      issuedAt: proof.timestamp,
       version: '2.0'
     };
 
-    let txHash, blockHeight;
+    const anchored = await anchorPayloadToChain(anchorData, blockchainUrl);
 
-    try {
-      // Submit to blockchain asset registry endpoint
-      // This uses JSON-RPC format expected by the blockchain
-      const response = await fetch(`${blockchainUrl}/asset/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          params: [
-            proof.blake3Hash,  // Asset hash (BLAKE3)
-            JSON.stringify(anchorData)  // Metadata as JSON string
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[QuantumVault] Blockchain register failed: ${response.status} - ${errorText}`);
-        throw new Error(`Blockchain asset registration failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      // Extract transaction hash and block height from response
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      txHash = result.tx_hash || result.txHash || result.hash || result.transaction_hash;
-      blockHeight = result.block_height || result.blockHeight || result.height;
-
-      console.log(`[QuantumVault] ✅ Asset registered on blockchain: ${txHash}`);
-
-      // Verify the asset was actually registered by checking the blockchain
-      if (txHash) {
-        try {
-          const verifyResponse = await fetch(`${blockchainUrl}/asset/verify`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              params: [proof.blake3Hash]
-            })
-          });
-
-          if (verifyResponse.ok) {
-            const verifyResult = await verifyResponse.json();
-            console.log(`[QuantumVault] ✅ Verified asset on-chain:`, verifyResult);
-          }
-        } catch (verifyErr) {
-          console.warn('[QuantumVault] Could not verify asset:', verifyErr.message);
-        }
-      }
-
-    } catch (blockchainError) {
-      console.error('[QuantumVault] Blockchain anchoring failed:', blockchainError.message);
-
-      return res.status(500).json({
-        success: false,
-        error: 'Blockchain anchoring failed',
-        message: blockchainError.message,
-        note: 'The blockchain asset registry is not responding. Please ensure the blockchain node is running.'
-      });
-    }
-
-    // Get current block height if not returned
-    if (!blockHeight) {
-      try {
-        const statusRes = await fetch(`${blockchainUrl}/status`);
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          blockHeight = statusData.latest_height || statusData.height || 0;
-        }
-      } catch (err) {
-        console.warn('[QuantumVault] Could not get block height:', err.message);
-        blockHeight = 0;
-      }
-    }
-
-    // Store in on-chain registry
     onChainRegistry[proofId] = {
       ...anchorData,
-      txHash,
-      blockHeight,
+      blake3Hash: proof.blake3Hash,
+      filename: proof.filename,
+      signature: proof.signature,
+      txHash: anchored.txHash,
+      blockHeight: anchored.blockHeight,
+      owner: anchored.wallet.address,
       anchoredAt: new Date().toISOString(),
       status: 'confirmed'
     };
+    await saveRegistry();
 
-    // Update proof with anchor info
     proof.anchored = true;
-    proof.txHash = txHash;
-    proof.blockHeight = blockHeight;
+    proof.txHash = anchored.txHash;
+    proof.blockHeight = anchored.blockHeight;
     metadata[proofId] = proof;
     await saveMetadata();
 
-    console.log(`[QuantumVault] ✅ Proof ${proofId} anchored at block ${blockHeight}, tx: ${txHash}`);
+    console.log(`[QuantumVault] ✅ Proof ${proofId} anchored at block ${anchored.blockHeight}, tx: ${anchored.txHash}`);
 
     res.json({
       success: true,
       proofId,
       transaction: {
-        hash: txHash,
-        blockHeight: blockHeight,
+        hash: anchored.txHash,
+        blockHeight: anchored.blockHeight,
         timestamp: new Date().toISOString(),
         status: 'confirmed'
       },
       proof: proof,
-      verification: `You can verify this proof at: ${blockchainUrl}/asset/verify with hash ${proof.blake3Hash}`
+      verification: `On-chain transaction ${anchored.txHash} confirms payload ${proof.blake3Hash}`
     });
 
   } catch (error) {
@@ -722,7 +939,7 @@ app.get('/status', async (req, res) => {
     if (response.ok) {
       const data = await response.json();
       blockchainConnected = true;
-      blockchainHeight = data.block_height || data.blockHeight || 0;
+      blockchainHeight = data.latest_height || data.block_height || data.blockHeight || 0;
     }
   } catch (err) {
     console.warn('[QuantumVault] Blockchain health check failed:', err.message);
@@ -773,7 +990,7 @@ app.get('/anchors/recent', (req, res) => {
         return {
           proofId,
           txHash: entry.txHash,
-          payloadHash: entry.blake3Hash || entry.blake3 || proof.blake3Hash,
+          payloadHash: entry.payloadHash || entry.blake3Hash || entry.blake3 || proof.blake3Hash,
           filename: entry.filename || proof.filename,
           blockHeight: entry.blockHeight || proof.blockHeight,
           anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
@@ -796,55 +1013,82 @@ app.get('/anchors/recent', (req, res) => {
 
 /**
  * GET /anchors/lookup/:id
- * Lookup an anchored proof by qv_anchor txHash, proofId, or payload hash.
+ * Lookup an anchored proof by txHash, proofId, or payload hash.
  */
-app.get('/anchors/lookup/:id', (req, res) => {
+app.get('/anchors/lookup/:id', async (req, res) => {
   try {
     const id = decodeURIComponent(req.params.id);
+    const normalizedId = String(id || '').trim().toLowerCase();
+    const normalizedHexId = normalizedId.replace(/^0x/i, '');
+    const blockchainUrl = process.env.BLOCKCHAIN_API_URL ||
+      process.env.VITE_BLOCKCHAIN_URL ||
+      'http://localhost:3003';
+    const attachVerification = async (payload) => {
+      try {
+        const verification = await verifyAnchorOnChain({
+          txHash: payload.txHash,
+          blockHeight: payload.blockHeight,
+          payloadHash: payload.payloadHash
+        }, blockchainUrl);
+
+        return {
+          ...payload,
+          blockHeight: verification.blockHeight || payload.blockHeight,
+          onChainVerified: verification.verified,
+          onChainStatus: verification.receipt?.status || payload.status || 'confirmed'
+        };
+      } catch (error) {
+        return {
+          ...payload,
+          onChainVerified: false,
+          verificationError: error.message
+        };
+      }
+    };
 
     // 1) Direct proofId match
     if (onChainRegistry[id]) {
       const entry = onChainRegistry[id];
       const proof = metadata[id] || {};
-      return res.json({
+      return res.json(await attachVerification({
         found: true,
         type: 'proofId',
         proofId: id,
         txHash: entry.txHash,
-        payloadHash: entry.blake3Hash || entry.blake3 || proof.blake3Hash,
+        payloadHash: entry.payloadHash || entry.blake3Hash || entry.blake3 || proof.blake3Hash,
         filename: entry.filename || proof.filename,
         blockHeight: entry.blockHeight || proof.blockHeight,
         anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
         status: entry.status || 'confirmed'
-      });
+      }));
     }
 
-    // 2) qv_anchor txHash match
-    if (id.startsWith('qv_anchor_')) {
-      for (const [proofId, entry] of Object.entries(onChainRegistry)) {
-        if (entry && entry.txHash === id) {
-          const proof = metadata[proofId] || {};
-          return res.json({
-            found: true,
-            type: 'txHash',
-            proofId,
-            txHash: entry.txHash,
-            payloadHash: entry.blake3Hash || entry.blake3 || proof.blake3Hash,
-            filename: entry.filename || proof.filename,
-            blockHeight: entry.blockHeight || proof.blockHeight,
-            anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
-            status: entry.status || 'confirmed'
-          });
-        }
+    // 2) txHash match
+    for (const [proofId, entry] of Object.entries(onChainRegistry)) {
+      const entryTxHash = entry?.txHash ? String(entry.txHash).trim().toLowerCase() : '';
+      if (entryTxHash && entryTxHash === normalizedId) {
+        const proof = metadata[proofId] || {};
+        return res.json(await attachVerification({
+          found: true,
+          type: 'txHash',
+          proofId,
+          txHash: entry.txHash,
+          payloadHash: entry.payloadHash || entry.blake3Hash || entry.blake3 || proof.blake3Hash,
+          filename: entry.filename || proof.filename,
+          blockHeight: entry.blockHeight || proof.blockHeight,
+          anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
+          status: entry.status || 'confirmed'
+        }));
       }
     }
 
     // 3) payload hash match (attestation hash)
     for (const [proofId, entry] of Object.entries(onChainRegistry)) {
       const proof = metadata[proofId] || {};
-      const payloadHash = entry.blake3Hash || entry.blake3 || proof.blake3Hash;
-      if (payloadHash === id || payloadHash === id.replace(/^0x/i, '')) {
-        return res.json({
+      const payloadHash = entry.payloadHash || entry.blake3Hash || entry.blake3 || proof.blake3Hash;
+      const normalizedPayloadHash = payloadHash ? String(payloadHash).trim().toLowerCase().replace(/^0x/i, '') : '';
+      if (normalizedPayloadHash && normalizedPayloadHash === normalizedHexId) {
+        return res.json(await attachVerification({
           found: true,
           type: 'payloadHash',
           proofId,
@@ -854,7 +1098,7 @@ app.get('/anchors/lookup/:id', (req, res) => {
           blockHeight: entry.blockHeight || proof.blockHeight,
           anchoredAt: entry.anchoredAt || proof.anchoredAt || proof.timestamp,
           status: entry.status || 'confirmed'
-        });
+        }));
       }
     }
 
@@ -884,60 +1128,24 @@ app.post('/verify/transaction', async (req, res) => {
       process.env.VITE_BLOCKCHAIN_URL ||
       'http://localhost:3003';
 
-    // 1. Fetch Transaction from Blockchain (Real Lookup)
-    let txData;
+    let verification;
+    try {
+      verification = await verifyAnchorOnChain({
+        txHash,
+        payloadHash
+      }, BLOCKCHAIN_API_URL);
+    } catch (e) {
+      console.error('[QuantumVault] Blockchain lookup failed:', e);
+      return res.status(502).json({ error: 'Blockchain unreachable', details: e.message });
+    }
 
-    // Check if this is a special Asset Registry transaction (qv_anchor_...)
-    if (txHash.startsWith('qv_anchor_')) {
-      console.log(`[QuantumVault] Detected Asset Registry transaction: ${txHash}`);
-
-      // For qv_anchor transactions, we use the /asset/verify endpoint
-      try {
-        const verifyResponse = await fetch(`${BLOCKCHAIN_API_URL}/asset/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            params: [payloadHash]
-          })
-        });
-
-        if (!verifyResponse.ok) {
-          console.warn(`[QuantumVault] Blockchain asset verify failed: ${verifyResponse.status}`);
-          return res.status(404).json({ error: 'Asset verification failed on blockchain' });
-        }
-
-        const verifyResult = await verifyResponse.json();
-
-        // Construct a synthetic transaction object for the frontend
-        txData = {
-          hash: txHash, // Pass back the ID
-          block_height: verifyResult.block_height || 0,
-          status: 'confirmed', // Asset registry writes are confirmed immediately in this implementation
-          timestamp: new Date().toISOString(), // Mock timestamp if not returned
-          type: 'asset_registration'
-        };
-        console.log('[QuantumVault] Asset verified via registry');
-
-      } catch (e) {
-        console.error('[QuantumVault] Asset verification error:', e);
-        return res.status(502).json({ error: 'Blockchain unreachable for asset verification' });
-      }
-
-    } else {
-      // Standard Transaction Lookup
-      try {
-        const txResponse = await fetch(`${BLOCKCHAIN_API_URL}/tx/${txHash}`);
-
-        if (!txResponse.ok) {
-          console.warn(`[QuantumVault] Blockchain returned ${txResponse.status} for tx ${txHash}`);
-          return res.status(404).json({ error: 'Transaction not found on blockchain' });
-        }
-
-        txData = await txResponse.json();
-      } catch (e) {
-        console.error('[QuantumVault] Blockchain lookup failed:', e);
-        return res.status(502).json({ error: 'Blockchain unreachable', details: e.message });
-      }
+    if (!verification?.verified) {
+      return res.status(404).json({
+        error: 'Transaction not found on blockchain for the supplied payload hash',
+        txHash,
+        payloadHash,
+        details: verification?.reason || 'unknown'
+      });
     }
 
     // 2. Verify Signature (Real Cryptography)
@@ -969,15 +1177,16 @@ app.post('/verify/transaction', async (req, res) => {
       blockchain: {
         exists: true,
         txHash: txHash,
-        blockHeight: txData.block_height || txData.height || 0,
-        status: txData.status || 'confirmed',
-        timestamp: txData.timestamp || new Date().toISOString()
+        blockHeight: verification.blockHeight || verification.receipt?.block_height || 0,
+        status: verification.receipt?.status || 'confirmed',
+        timestamp: verification.payload?.timestamp || new Date().toISOString()
       },
       signature: {
         valid: signatureValid,
         message: signatureMessage
       },
-      payloadHash: payloadHash
+      payloadHash: payloadHash,
+      onChainPayload: verification.payload
     });
 
   } catch (error) {

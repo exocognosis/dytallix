@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import {
   Activity,
   ArrowLeft,
@@ -150,6 +150,7 @@ function Sparkline({ values, className }: { values: number[]; className?: string
 }
 
 export function BlockchainPage() {
+  const [urlSearchParams] = useSearchParams()
   const nodeUrl = useMemo(
     () => (import.meta.env.VITE_BLOCKCHAIN_URL || "http://localhost:3003").replace(/\/$/, ""),
     []
@@ -193,16 +194,25 @@ export function BlockchainPage() {
 
   const refresh = async () => {
     try {
-      const [statusData, blocksData, txData] = await Promise.all([
+      const [statusData, blocksData, txData, recentAnchorData] = await Promise.all([
         fetchJson<NodeStatus>(`${nodeUrl}/status`),
         fetchJson<{ blocks?: BlockSummary[] }>(`${nodeUrl}/blocks?limit=10`),
         fetchJson<{ transactions?: TxSummary[] }>(`${nodeUrl}/transactions?limit=10`),
+        fetchJson<{ anchors?: Array<{
+          proofId?: string
+          txHash?: string
+          payloadHash?: string
+          filename?: string
+          blockHeight?: number
+          anchoredAt?: string
+          status?: string
+        }> }>(`${quantumVaultUrl}/anchors/recent?limit=10`).catch(() => null),
       ])
 
       setStatus(statusData)
       setBlocks(blocksData.blocks || [])
       setTransactions(txData.transactions || [])
-      setRecentAnchors([]) // Explorer only shows blockchain data, not QuantumVault anchors
+      setRecentAnchors(recentAnchorData?.anchors || [])
       setOnline(true)
       setLastError(null)
       setLastUpdated(Date.now())
@@ -266,14 +276,20 @@ export function BlockchainPage() {
 
     try {
       const isQvAnchor = q.startsWith("qv_anchor_")
+      const isProofId = /^[0-9a-f]{16}$/i.test(q)
       const isHex64 = /^0x[0-9a-fA-F]{64}$/.test(q) || /^[0-9a-fA-F]{64}$/.test(q)
       const isWalletAddress = /^dytallix1[0-9a-z]{20,}$/i.test(q) || /^dyt1[0-9a-z]{20,}$/i.test(q)
+      const isLikelyTxHash = q.startsWith("0x") || q.length >= 40
 
-      // 1) QuantumVault anchor lookup (qv_anchor_* or attestation/payload hash)
-      if (isQvAnchor || isHex64) {
-        const lookup = await fetchJson<unknown>(`${quantumVaultUrl}/anchors/lookup/${encodeURIComponent(q)}`, 7000)
-        setSearchResult(lookup)
-        return
+      // 1) QuantumVault anchor lookup (proofId, attestation/payload hash, or legacy qv_anchor)
+      if (isQvAnchor || isProofId || isHex64) {
+        try {
+          const lookup = await fetchJson<unknown>(`${quantumVaultUrl}/anchors/lookup/${encodeURIComponent(q)}`, 7000)
+          setSearchResult(lookup)
+          return
+        } catch {
+          // Fall through so 0x tx hashes can still be resolved against chain endpoints.
+        }
       }
 
       // 2) Wallet address lookup
@@ -287,7 +303,6 @@ export function BlockchainPage() {
       }
 
       // 3) Standard chain lookup
-      const isLikelyTxHash = q.startsWith("0x") || q.length >= 40
       const url = isLikelyTxHash
         ? `${nodeUrl}/transactions/${encodeURIComponent(q)}`
         : `${nodeUrl}/block/${encodeURIComponent(q)}`
@@ -296,12 +311,26 @@ export function BlockchainPage() {
       setSearchResult(data)
     } catch {
       setSearchError(
-        "Not found. Try a wallet address (dyt…/dytallix…), a qv_anchor_… ID, attestation hash (64 hex), tx hash (0x…), block height, block hash, or 'latest'."
+        "Not found. Try a wallet address (dyt…/dytallix…), a proof ID, payload hash (64 hex), tx hash (0x…), block height, block hash, or 'latest'."
       )
     } finally {
       setSearchLoading(false)
     }
   }
+
+  useEffect(() => {
+    const seededQuery = urlSearchParams.get("search")?.trim()
+    if (!seededQuery) return
+    setSearchQuery((current) => current || seededQuery)
+  }, [urlSearchParams])
+
+  useEffect(() => {
+    const seededQuery = urlSearchParams.get("search")?.trim()
+    if (!seededQuery || searchLoading || searchResult !== null || searchError) return
+    if (searchQuery.trim() !== seededQuery) return
+    void handleSearch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, urlSearchParams, searchLoading, searchResult, searchError])
 
   return (
     <>

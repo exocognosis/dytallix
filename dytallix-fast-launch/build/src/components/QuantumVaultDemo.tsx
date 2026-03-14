@@ -7,6 +7,54 @@ import { Link } from "react-router-dom"
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
 
+type QuantumVaultReceipt = {
+    timestamp: string
+    fileName: string
+    fileSize: number
+    encryption: string
+    signature: string
+    payloadHash: string
+    txHash: string
+    signer: string
+    publicKey: string
+    signatureHex: string
+    mode: "api"
+    anchorStatus?: string
+    blockHeight?: number
+}
+
+const normalizeRequestUrl = (value: string) => {
+    if (typeof window === "undefined") {
+        return trimTrailingSlash(value)
+    }
+
+    try {
+        return trimTrailingSlash(new URL(value, window.location.origin).toString())
+    } catch {
+        return trimTrailingSlash(value)
+    }
+}
+
+const describeResponseError = async (response: Response, fallback: string) => {
+    const contentType = response.headers.get("content-type") || ""
+
+    if (contentType.includes("application/json")) {
+        try {
+            const payload = await response.json()
+            return payload?.details || payload?.error || payload?.message || fallback
+        } catch {
+            return fallback
+        }
+    }
+
+    try {
+        const payload = (await response.text()).trim()
+        return payload || fallback
+    } catch {
+        return fallback
+    }
+}
+
 const resolveQuantumVaultBase = () => {
     const isBrowser = typeof window !== "undefined"
 
@@ -45,11 +93,11 @@ export function QuantumVaultDemo() {
     const [view, setView] = useState<"secure" | "verify">("secure")
     const [logs, setLogs] = useState<string[]>([])
     const [encryptedBlob, setEncryptedBlob] = useState<Blob | null>(null)
-    const [receipt, setReceipt] = useState<any>(null)
+    const [receipt, setReceipt] = useState<QuantumVaultReceipt | null>(null)
 
     // Verification State
     const [verifyFile, setVerifyFile] = useState<File | null>(null)
-    const [verifyReceipt, setVerifyReceipt] = useState<any>(null)
+    const [verifyReceipt, setVerifyReceipt] = useState<QuantumVaultReceipt | null>(null)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
     const verifyFileInputRef = useRef<HTMLInputElement>(null)
@@ -63,7 +111,7 @@ export function QuantumVaultDemo() {
         const sameOriginFallback = typeof window !== "undefined"
             ? trimTrailingSlash(new URL("/api/quantumvault", window.location.origin).toString())
             : "http://localhost:3002"
-        const canFallback = sameOriginFallback !== quantumVaultUrl
+        const canFallback = normalizeRequestUrl(`${sameOriginFallback}${normalizedPath}`) !== normalizeRequestUrl(primaryUrl)
 
         try {
             const response = await fetch(primaryUrl, init)
@@ -119,13 +167,7 @@ export function QuantumVaultDemo() {
             })
 
             if (!response.ok) {
-                let details = response.statusText || 'Unknown server error'
-                try {
-                    const payload = await response.json()
-                    details = payload?.details || payload?.error || details
-                } catch {
-                    // Keep status text fallback
-                }
+                const details = await describeResponseError(response, response.statusText || 'Unknown server error')
                 throw new Error(`Encryption failed (${response.status}): ${details}`)
             }
 
@@ -146,6 +188,9 @@ export function QuantumVaultDemo() {
             // Store encrypted blob for download (Fetch it back from backend)
             // For this demo, we'll fetch the .enc file we just created
             const encFileResponse = await requestQuantumVault(`/download/${result.encryptedFilename}`)
+            if (!encFileResponse.ok) {
+                throw new Error(await describeResponseError(encFileResponse, `Encrypted asset download failed (${encFileResponse.status})`))
+            }
             const encBlob = await encFileResponse.blob()
             setEncryptedBlob(encBlob)
 
@@ -166,12 +211,15 @@ export function QuantumVaultDemo() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    blake3: result.hash, // Using SHA256 as blake3 placeholder for now
+                    blake3: result.hash,
                     filename: result.encryptedFilename,
                     mime: "application/octet-stream",
                     size: encBlob.size
                 })
             })
+            if (!proofRes.ok) {
+                throw new Error(await describeResponseError(proofRes, `Proof generation failed (${proofRes.status})`))
+            }
             const proofData = await proofRes.json()
 
             setStatus("anchoring")
@@ -183,6 +231,9 @@ export function QuantumVaultDemo() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ proofId: proofData.proofId })
             })
+            if (!anchorRes.ok) {
+                throw new Error(await describeResponseError(anchorRes, `Anchoring failed (${anchorRes.status})`))
+            }
             const anchorResult = await anchorRes.json()
 
             if (!anchorResult.success) throw new Error(anchorResult.error)
@@ -191,7 +242,7 @@ export function QuantumVaultDemo() {
             addLog(`Tx Hash: ${anchorResult.transaction.hash}`)
 
             // Create Receipt
-            setReceipt({
+            const nextReceipt: QuantumVaultReceipt = {
                 timestamp: new Date().toISOString(),
                 fileName: file.name,
                 fileSize: file.size,
@@ -201,15 +252,20 @@ export function QuantumVaultDemo() {
                 txHash: anchorResult.transaction.hash,
                 signer: result.dilithium.publicKey.substring(0, 32) + "...",
                 publicKey: result.dilithium.publicKey, // Store full key for verification
-                signatureHex: result.dilithium.signature // Store actual hex signature for verification
-            })
+                signatureHex: result.dilithium.signature, // Store actual hex signature for verification
+                mode: "api",
+                anchorStatus: anchorResult.transaction.status,
+                blockHeight: anchorResult.transaction.blockHeight
+            }
+
+            setReceipt(nextReceipt)
 
             setStatus("secured")
             addLog("SUCCESS: File is now Quantum-Secured and Anchored.")
 
         } catch (error) {
             console.error(error)
-            addLog(`ERROR: ${error}`)
+            addLog(`ERROR: ${error instanceof Error ? error.message : error}`)
             setStatus("idle")
         }
     }
@@ -281,8 +337,7 @@ export function QuantumVaultDemo() {
             })
 
             if (!verifyRes.ok) {
-                const errData = await verifyRes.json()
-                throw new Error(errData.error || "Blockchain lookup failed")
+                throw new Error(await describeResponseError(verifyRes, "Blockchain lookup failed"))
             }
 
             const verifyData = await verifyRes.json()
@@ -333,7 +388,7 @@ export function QuantumVaultDemo() {
             reader.onload = (event) => {
                 try {
                     const json = JSON.parse(event.target?.result as string)
-                    setVerifyReceipt(json)
+                    setVerifyReceipt(json as QuantumVaultReceipt)
                 } catch (err) {
                     addLog("ERROR: Invalid receipt file format.")
                 }
@@ -382,7 +437,7 @@ export function QuantumVaultDemo() {
                                             <p className="text-sm text-muted-foreground">Drag and drop or click to upload</p>
                                         </div>
                                         <div className="inline-block px-3 py-1 rounded-full bg-white/5 text-xs text-muted-foreground">
-                                            Client-side PQC Encryption
+                                            Client-side PQC encryption
                                         </div>
                                     </div>
                                 )}
@@ -445,7 +500,7 @@ export function QuantumVaultDemo() {
                                                 <CheckCircle className="w-4 h-4 text-green-400" /> What just happened?
                                             </h4>
                                             <p className="text-muted-foreground leading-relaxed">
-                                                Your file was encrypted using <span className="text-blue-400">Kyber-1024</span> (Post-Quantum Key Encapsulation) and signed with <span className="text-purple-400">Dilithium-5</span>. A hash of this encrypted payload was anchored to the Dytallix Blockchain.
+                                                <><span>Your file was encrypted using </span><span className="text-blue-400">Kyber-1024</span><span> (Post-Quantum Key Encapsulation) and signed with </span><span className="text-purple-400">Dilithium-5</span><span>. A hash of this encrypted payload was anchored to the Dytallix Blockchain with a confirmed on-chain transaction.</span></>
                                             </p>
                                         </div>
                                         <div className="border-t border-white/10 pt-3">
@@ -479,7 +534,7 @@ export function QuantumVaultDemo() {
                                 </div>
                                 <h3 className="text-2xl font-bold">Verify Asset Integrity</h3>
                                 <p className="text-muted-foreground">
-                                    Compare your local encrypted file against the immutable record on the Dytallix Blockchain.
+                                    Compare your local encrypted file against the recorded QuantumVault receipt.
                                 </p>
                             </div>
 
@@ -608,10 +663,22 @@ export function QuantumVaultDemo() {
                                                 </Button>
                                             </div>
                                         </div>
-                                        <div className="pt-2">
-                                            <Link to="/build/blockchain" target="_blank" className="text-xs flex items-center gap-1 text-primary hover:underline">
+                                        <div className="pt-2 space-y-2">
+                                            <Link
+                                                to={`/build/blockchain?search=${encodeURIComponent(verifyReceipt?.txHash || "")}`}
+                                                target="_blank"
+                                                className="text-xs flex items-center gap-1 text-primary hover:underline"
+                                            >
                                                 <ExternalLink className="w-3 h-3" />
                                                 View on Dytallix Explorer (Search for Tx Hash)
+                                            </Link>
+                                            <Link
+                                                to={`/build/blockchain?search=${encodeURIComponent(verifyReceipt?.payloadHash || "")}`}
+                                                target="_blank"
+                                                className="text-xs flex items-center gap-1 text-primary hover:underline"
+                                            >
+                                                <ExternalLink className="w-3 h-3" />
+                                                View on Dytallix Explorer (Search for Payload Hash)
                                             </Link>
                                         </div>
                                     </div>

@@ -8,7 +8,9 @@
  */
 
 import { createHash, createHmac, randomBytes } from 'crypto';
-import { MlKem1024 } from 'crystals-kyber-js';
+// Package root export resolution is broken under the current local Node runtime;
+// import the ESM entrypoint directly so the service can boot consistently.
+import { MlKem1024 } from './node_modules/crystals-kyber-js/esm/mod.js';
 import dilithiumPromise from 'dilithium-crystals-js';
 
 // dilithium-crystals-js parameter set mapping (README):
