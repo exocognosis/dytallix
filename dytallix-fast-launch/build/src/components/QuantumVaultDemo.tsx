@@ -1,649 +1,1195 @@
-import { useState, useRef, useMemo } from "react"
-import { GlassPanel } from "./ui/GlassPanel"
+import { useEffect, useMemo, useRef, useState } from "react"
+import {
+    AlertTriangle,
+    CheckCircle,
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    ExternalLink,
+    Eye,
+    FileKey,
+    Info,
+    KeyRound,
+    Link2,
+    Loader2,
+    Lock,
+    ShieldCheck,
+    Upload,
+} from "lucide-react"
+
+import { quantumVaultDemoApi, QuantumVaultApiError } from "../features/quantum-vault-demo/api"
+import { quantumVaultDemoConfig } from "../features/quantum-vault-demo/config"
+import {
+    clearEncryptionSessionSecrets,
+    createAttestation,
+    decryptAsset,
+    encryptAsset,
+    type EncryptionSessionSecrets,
+} from "../features/quantum-vault-demo/crypto"
+import {
+    formatBytes,
+    formatDateTime,
+    parseEncryptedFilename,
+    safeMimeType,
+    truncateMiddle,
+} from "../features/quantum-vault-demo/formatters"
+import { buildAssetPreview } from "../features/quantum-vault-demo/preview"
 import { Button } from "./ui/Button"
+import { GlassPanel } from "./ui/GlassPanel"
 import { LiveLogPanel } from "./ui/LiveLogPanel"
-import { Lock, Upload, ShieldCheck, FileKey, Activity, CheckCircle, Loader2, Info, Copy, ExternalLink, FileText } from "lucide-react"
-import { Link } from "react-router-dom"
 
-const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
+type SlideId = "upload-encrypt" | "attest-anchor" | "verify" | "decrypt-review" | "lifecycle"
+type StageStatus = "idle" | "ready" | "processing" | "succeeded" | "failed" | "blocked"
 
-const resolveQuantumVaultBase = () => {
-    const isBrowser = typeof window !== "undefined"
+type WorkflowError = {
+    type: "validation" | "network" | "service" | "verification" | "authorization" | "crypto"
+    message: string
+    details?: string
+}
 
-    if (isBrowser) {
-        const host = window.location.hostname
-        const isDytallixHost = host === "dytallix.com" || host.endsWith(".dytallix.com")
-        if (isDytallixHost) {
-            return "/api/quantumvault"
-        }
-    }
+type UploadEncryptOutput = {
+    assetId: string
+    assetUri: string
+    encryptedFilename: string
+    originalFileName: string
+    mimeType: string
+    size: number
+    encryptedSize: number
+    payloadHash: string
+    originalHash: string
+    envelopeId: string
+    storageLocation: string
+    uploadedAt: string
+    status: string
+    publicKeyFingerprint: string
+    capsuleHex: string
+    ivHex: string
+}
 
-    const rawBase = (import.meta.env.VITE_QUANTUMVAULT_API_URL || "").trim()
-    if (!rawBase) {
-        return isBrowser ? "/api/quantumvault" : "http://localhost:3002"
-    }
+type AttestAnchorOutput = {
+    proofId: string
+    attestationHash: string
+    payloadHash: string
+    transactionHash: string
+    blockHeight: number
+    submissionReference: string
+    anchoredAt: string
+    status: string
+    attestationSignature: string
+    attestationPublicKey: string
+    attestationPublicKeyFingerprint: string
+    attestationIssuedAt: string
+}
 
-    if (/^dytallix1[0-9a-f]+$/i.test(rawBase)) {
-        return isBrowser ? "/api/quantumvault" : "http://localhost:3002"
-    }
+type VerifyOutput = {
+    transactionHash: string
+    payloadHash: string
+    attestationHash: string
+    blockHeight: number
+    blockHash: string | null
+    timestamp: string | null
+    confirmationStatus: string
+    finalityStatus: string
+    verificationStatus: string
+    verificationTimestamp: string
+    explorerUrl: string
+    onChainVerified: boolean
+    confirmationCount: number | null
+}
 
-    if (!isBrowser) {
-        return trimTrailingSlash(rawBase)
-    }
+type PreviewRecord = {
+    kind: "text" | "json" | "image" | "pdf" | "metadata"
+    title: string
+    objectUrl?: string
+    content?: string
+    metadataLines: string[]
+}
 
-    try {
-        return trimTrailingSlash(new URL(rawBase, window.location.origin).toString())
-    } catch {
-        return "/api/quantumvault"
+type DecryptOutput = {
+    decryptionEventId: string
+    authorizedIdentity: string
+    assetFingerprint: string
+    decryptedAt: string
+    status: string
+    authorizationStatus: string
+    recoveredSize: number
+    preview: PreviewRecord
+    downloadName: string
+}
+
+type AuditEvent = {
+    id: string
+    stepName: string
+    timestamp: string
+    actor: string
+    artifactProduced: string
+    status: string
+    associatedValues: Array<{ label: string; value: string }>
+}
+
+type LifecycleOutput = {
+    completedAt: string
+    banner: string
+    summary: string
+    events: AuditEvent[]
+}
+
+type SlideState<T> = {
+    status: StageStatus
+    output: T | null
+    error: WorkflowError | null
+}
+
+type WorkflowState = {
+    uploadEncrypt: SlideState<UploadEncryptOutput>
+    attestAnchor: SlideState<AttestAnchorOutput>
+    verify: SlideState<VerifyOutput>
+    decryptReview: SlideState<DecryptOutput>
+    lifecycle: SlideState<LifecycleOutput>
+}
+
+type SelectedAsset = {
+    name: string
+    mimeType: string
+    size: number
+    lastModified: number
+}
+
+const slides: Array<{
+    id: SlideId
+    label: string
+    title: string
+    actionLabel: string
+    summary: string
+}> = [
+    {
+        id: "upload-encrypt",
+        label: "Upload / Encrypt",
+        title: "Upload and Encrypt",
+        actionLabel: "Upload and Encrypt",
+        summary: "Secure the selected asset locally with ML-KEM-backed envelope encryption, then upload only the protected payload to QuantumVault.",
+    },
+    {
+        id: "attest-anchor",
+        label: "Attest / Anchor",
+        title: "Attest and Anchor",
+        actionLabel: "Attest and Anchor",
+        summary: "Issue a real ML-DSA attestation over the protected payload hash and anchor the proof on Dytallix.",
+    },
+    {
+        id: "verify",
+        label: "Verify",
+        title: "Verify",
+        actionLabel: "Verify on Dytallix",
+        summary: "Use the embedded mini-explorer to confirm the actual anchored proof record and the block that contains it without leaving the page.",
+    },
+    {
+        id: "decrypt-review",
+        label: "Decrypt / Review",
+        title: "Decrypt and Review the Asset",
+        actionLabel: "Decrypt and Review the Asset",
+        summary: "Recover the encrypted asset through the live QuantumVault download path and decrypt it locally for review.",
+    },
+    {
+        id: "lifecycle",
+        label: "Lifecycle Audit",
+        title: "Lifecycle Audit and File Recovery",
+        actionLabel: "Build Lifecycle Audit",
+        summary: "Render the real upload, encryption, attestation, anchoring, verification, decryption, and review record, then download the recovered file.",
+    },
+]
+
+const AUTO_ADVANCE_DELAY_MS = 6000
+
+function createInitialWorkflowState(): WorkflowState {
+    return {
+        uploadEncrypt: { status: "idle", output: null, error: null },
+        attestAnchor: { status: "blocked", output: null, error: null },
+        verify: { status: "blocked", output: null, error: null },
+        decryptReview: { status: "blocked", output: null, error: null },
+        lifecycle: { status: "blocked", output: null, error: null },
     }
 }
 
+function toError(error: unknown): WorkflowError {
+    if (error instanceof QuantumVaultApiError) {
+        return {
+            type:
+                error.kind === "network"
+                    ? "network"
+                    : error.kind === "auth"
+                        ? "authorization"
+                        : error.kind === "verification"
+                            ? "verification"
+                            : error.kind === "validation"
+                                ? "validation"
+                                : "service",
+            message: error.message,
+            details: error.details,
+        }
+    }
+
+    if (error instanceof Error) {
+        return {
+            type: "crypto",
+            message: error.message,
+        }
+    }
+
+    return {
+        type: "service",
+        message: "Unexpected workflow failure",
+    }
+}
+
+function DataField({ label, value, tone = "text-slate-200" }: { label: string; value: string; tone?: string }) {
+    return (
+        <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{label}</div>
+            <div className={`mt-2 break-all font-mono text-sm ${tone}`}>{value}</div>
+        </div>
+    )
+}
+
+function StatusBadge({ status }: { status: StageStatus }) {
+    const classes: Record<StageStatus, string> = {
+        idle: "border-white/10 bg-white/5 text-slate-300",
+        ready: "border-blue-400/20 bg-blue-500/10 text-blue-200",
+        processing: "border-amber-400/20 bg-amber-500/10 text-amber-200",
+        succeeded: "border-green-400/20 bg-green-500/10 text-green-200",
+        failed: "border-red-400/20 bg-red-500/10 text-red-200",
+        blocked: "border-white/5 bg-white/[0.03] text-slate-500",
+    }
+
+    return <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${classes[status]}`}>{status}</span>
+}
+
+function DownloadRecoveredFileButton({ url, fileName }: { url: string | null; fileName: string | null }) {
+    return (
+        <Button
+            variant="outline"
+            className="h-12 w-full border-blue-400/20 bg-blue-500/5 text-blue-100 hover:bg-blue-500/10"
+            disabled={!url || !fileName}
+            onClick={() => {
+                if (!url || !fileName) return
+                const anchor = document.createElement("a")
+                anchor.href = url
+                anchor.download = fileName
+                document.body.appendChild(anchor)
+                anchor.click()
+                document.body.removeChild(anchor)
+            }}
+        >
+            <Download className="mr-2 h-4 w-4" /> Download Recovered File
+        </Button>
+    )
+}
+
+async function fetchChainTransaction(txHash: string) {
+    const candidates = [
+        `${quantumVaultDemoConfig.blockchainApiUrl}/tx/${encodeURIComponent(txHash)}`,
+        `${quantumVaultDemoConfig.blockchainApiUrl}/transactions/${encodeURIComponent(txHash)}`,
+    ]
+
+    for (const url of candidates) {
+        try {
+            const response = await fetch(url)
+            if (!response.ok) {
+                continue
+            }
+            return await response.json()
+        } catch {
+            continue
+        }
+    }
+
+    return null
+}
 
 export function QuantumVaultDemo() {
-    const [file, setFile] = useState<File | null>(null)
-    const [status, setStatus] = useState<"idle" | "encrypting" | "anchoring" | "secured" | "verifying" | "verified">("idle")
-    const [view, setView] = useState<"secure" | "verify">("secure")
+    const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null)
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
+    const [workflow, setWorkflow] = useState<WorkflowState>(createInitialWorkflowState)
     const [logs, setLogs] = useState<string[]>([])
-    const [encryptedBlob, setEncryptedBlob] = useState<Blob | null>(null)
-    const [receipt, setReceipt] = useState<any>(null)
-
-    // Verification State
-    const [verifyFile, setVerifyFile] = useState<File | null>(null)
-    const [verifyReceipt, setVerifyReceipt] = useState<any>(null)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const verifyFileInputRef = useRef<HTMLInputElement>(null)
-    const verifyReceiptInputRef = useRef<HTMLInputElement>(null)
+    const sourceFileRef = useRef<File | null>(null)
+    const sessionSecretsRef = useRef<EncryptionSessionSecrets | null>(null)
+    const previewUrlsRef = useRef<string[]>([])
+    const recoveredBlobUrlRef = useRef<string | null>(null)
+    const autoAdvanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    const quantumVaultUrl = useMemo(() => trimTrailingSlash(resolveQuantumVaultBase()), [])
+    const activeSlide = slides[currentSlideIndex]
+    const recoveredFileName = workflow.decryptReview.output?.downloadName || null
+    const recoveredFileUrl = recoveredBlobUrlRef.current
 
-    const requestQuantumVault = async (path: string, init?: RequestInit) => {
-        const normalizedPath = path.startsWith("/") ? path : `/${path}`
-        const primaryUrl = `${quantumVaultUrl}${normalizedPath}`
-        const sameOriginFallback = typeof window !== "undefined"
-            ? trimTrailingSlash(new URL("/api/quantumvault", window.location.origin).toString())
-            : "http://localhost:3002"
-        const canFallback = sameOriginFallback !== quantumVaultUrl
-
-        try {
-            const response = await fetch(primaryUrl, init)
-
-            if (response.status >= 500 && canFallback) {
-                addLog(`WARN: QuantumVault upstream ${response.status}. Retrying via platform gateway...`)
-                return await fetch(`${sameOriginFallback}${normalizedPath}`, init)
-            }
-
-            return response
-        } catch (error) {
-            if (canFallback) {
-                addLog("WARN: Primary QuantumVault endpoint unreachable. Retrying via platform gateway...")
-                return await fetch(`${sameOriginFallback}${normalizedPath}`, init)
-            }
-            throw error
+    const clearPendingAdvance = () => {
+        if (autoAdvanceTimeoutRef.current !== null) {
+            clearTimeout(autoAdvanceTimeoutRef.current)
+            autoAdvanceTimeoutRef.current = null
         }
     }
+
+    useEffect(() => {
+        return () => {
+            clearPendingAdvance()
+            clearEncryptionSessionSecrets(sessionSecretsRef.current)
+            previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+            previewUrlsRef.current = []
+            if (recoveredBlobUrlRef.current) {
+                URL.revokeObjectURL(recoveredBlobUrlRef.current)
+                recoveredBlobUrlRef.current = null
+            }
+        }
+    }, [])
 
     const addLog = (message: string) => {
-        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`])
+        setLogs((previous) => [...previous, `[${new Date().toLocaleTimeString()}] ${message}`])
     }
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0])
-            setLogs([])
-            setStatus("idle")
-            setEncryptedBlob(null)
-            setReceipt(null)
+    const scheduleAdvance = () => {
+        clearPendingAdvance()
+        addLog(`Holding this completed state for ${AUTO_ADVANCE_DELAY_MS / 1000} seconds before advancing to the next slide.`)
+        autoAdvanceTimeoutRef.current = setTimeout(() => {
+            autoAdvanceTimeoutRef.current = null
+            setCurrentSlideIndex((previous) => Math.min(previous + 1, slides.length - 1))
+        }, AUTO_ADVANCE_DELAY_MS)
+    }
+
+    const setStageStatus = <K extends keyof WorkflowState>(key: K, status: StageStatus, error: WorkflowError | null = null) => {
+        setWorkflow((previous) => ({
+            ...previous,
+            [key]: {
+                ...previous[key],
+                status,
+                error,
+            },
+        }))
+    }
+
+    const setStageOutput = <K extends keyof WorkflowState>(key: K, output: NonNullable<WorkflowState[K]["output"]>) => {
+        setWorkflow((previous) => ({
+            ...previous,
+            [key]: {
+                status: "succeeded",
+                output,
+                error: null,
+            },
+        }))
+    }
+
+    const unlockNextStages = (nextKey: keyof WorkflowState) => {
+        setWorkflow((previous) => {
+            const next = { ...previous }
+            if (nextKey === "attestAnchor" && !["succeeded", "processing", "failed"].includes(next.attestAnchor.status)) {
+                next.attestAnchor = { ...next.attestAnchor, status: "ready" }
+            }
+            if (nextKey === "verify" && !["succeeded", "processing", "failed"].includes(next.verify.status)) {
+                next.verify = { ...next.verify, status: "ready" }
+            }
+            if (nextKey === "decryptReview" && !["succeeded", "processing", "failed"].includes(next.decryptReview.status)) {
+                next.decryptReview = { ...next.decryptReview, status: "ready" }
+            }
+            if (nextKey === "lifecycle" && !["succeeded", "processing", "failed"].includes(next.lifecycle.status)) {
+                next.lifecycle = { ...next.lifecycle, status: "ready" }
+            }
+            return next
+        })
+    }
+
+    const goToSlide = (nextIndex: number) => {
+        if (nextIndex < 0 || nextIndex >= slides.length) {
+            return
         }
+        clearPendingAdvance()
+        setCurrentSlideIndex(nextIndex)
     }
 
-    const handleSecureFile = async () => {
-        if (!file) return
+    const highestAccessibleSlide = useMemo(() => {
+        const statuses = [workflow.uploadEncrypt.status, workflow.attestAnchor.status, workflow.verify.status, workflow.decryptReview.status, workflow.lifecycle.status]
+        let highest = 0
+        for (let index = 1; index < statuses.length; index += 1) {
+            if (statuses[index] === "blocked") {
+                break
+            }
+            highest = index
+        }
+        return highest
+    }, [workflow])
 
-        setStatus("encrypting")
+    const resetWorkflow = () => {
+        clearPendingAdvance()
+        clearEncryptionSessionSecrets(sessionSecretsRef.current)
+        sessionSecretsRef.current = null
+        sourceFileRef.current = null
+        previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+        previewUrlsRef.current = []
+        if (recoveredBlobUrlRef.current) {
+            URL.revokeObjectURL(recoveredBlobUrlRef.current)
+            recoveredBlobUrlRef.current = null
+        }
+        setSelectedAsset(null)
         setLogs([])
+        setCurrentSlideIndex(0)
+        setWorkflow(createInitialWorkflowState())
+    }
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        clearPendingAdvance()
+        const file = event.target.files?.[0] || null
+        if (!file) {
+            return
+        }
+
+        const mimeType = safeMimeType(file.type)
+        const allowed = quantumVaultDemoConfig.allowedMimePrefixes.some((prefix) => mimeType.toLowerCase().startsWith(prefix.toLowerCase()))
+        if (!allowed) {
+            setWorkflow((previous) => ({
+                ...previous,
+                uploadEncrypt: {
+                    ...previous.uploadEncrypt,
+                    status: "failed",
+                    error: {
+                        type: "validation",
+                        message: `The selected file type ${mimeType} is not allowed for the live demo.`,
+                        details: `Allowed prefixes: ${quantumVaultDemoConfig.allowedMimePrefixes.join(", ")}`,
+                    },
+                },
+            }))
+            return
+        }
+
+        if (file.size > quantumVaultDemoConfig.maxUploadBytes) {
+            setWorkflow((previous) => ({
+                ...previous,
+                uploadEncrypt: {
+                    ...previous.uploadEncrypt,
+                    status: "failed",
+                    error: {
+                        type: "validation",
+                        message: `The selected file exceeds the configured limit of ${formatBytes(quantumVaultDemoConfig.maxUploadBytes)}.`,
+                    },
+                },
+            }))
+            return
+        }
+
+        sourceFileRef.current = file
+        clearEncryptionSessionSecrets(sessionSecretsRef.current)
+        sessionSecretsRef.current = null
+        previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+        previewUrlsRef.current = []
+        if (recoveredBlobUrlRef.current) {
+            URL.revokeObjectURL(recoveredBlobUrlRef.current)
+            recoveredBlobUrlRef.current = null
+        }
+
+        setSelectedAsset({ name: file.name, mimeType, size: file.size, lastModified: file.lastModified })
+        setWorkflow({
+            uploadEncrypt: { status: "ready", output: null, error: null },
+            attestAnchor: { status: "blocked", output: null, error: null },
+            verify: { status: "blocked", output: null, error: null },
+            decryptReview: { status: "blocked", output: null, error: null },
+            lifecycle: { status: "blocked", output: null, error: null },
+        })
+        setLogs([])
+        setCurrentSlideIndex(0)
+    }
+
+    const handleUploadAndEncrypt = async () => {
+        const file = sourceFileRef.current
+        if (!file || !selectedAsset) {
+            return
+        }
+
+        clearPendingAdvance()
+        setLogs([])
+        setStageStatus("uploadEncrypt", "processing")
         addLog(`Starting QuantumVault protection for: ${file.name}`)
         addLog(`File Size: ${(file.size / 1024).toFixed(2)} KB`)
 
         try {
-            // 1. Upload & Encrypt (Real Backend Call)
-            addLog("Initializing QuantumVault Secure Enclave...")
-            addLog("Securing file locally...")
-
-            const formData = new FormData()
-            formData.append('file', file)
-
-            const response = await requestQuantumVault('/encrypt', {
-                method: 'POST',
-                body: formData
+            const localEncryption = await encryptAsset(file, quantumVaultDemoConfig, addLog)
+            addLog("Uploading the encrypted asset to the live QuantumVault storage endpoint...")
+            const upload = await quantumVaultDemoApi.uploadEncryptedAsset({
+                file: localEncryption.encryptedFile,
+                originalFileName: file.name,
+                mimeType: selectedAsset.mimeType,
+                payloadHash: localEncryption.payloadHash,
             })
 
-            if (!response.ok) {
-                let details = response.statusText || 'Unknown server error'
-                try {
-                    const payload = await response.json()
-                    details = payload?.details || payload?.error || details
-                } catch {
-                    // Keep status text fallback
-                }
-                throw new Error(`Encryption failed (${response.status}): ${details}`)
-            }
+            clearEncryptionSessionSecrets(sessionSecretsRef.current)
+            sessionSecretsRef.current = localEncryption.secrets
 
-            const result = await response.json()
-
-            // 2. Display Real Keys from Backend
-            addLog("Generating Kyber-1024 Keypair (KEM)...")
-            addLog(`Kyber Public Key: ${result.kyber.publicKey.substring(0, 24)}...`)
-
-            addLog("Generating Dilithium-3 Keypair (Digital Signature)...")
-            addLog(`Dilithium Public Key: ${result.dilithium.publicKey.substring(0, 24)}...`)
-
-            // 3. Display Encryption Details
-            addLog("Encrypting file data (AES-GCM + Kyber Encapsulation)...")
-            addLog(`Encryption Complete. Ciphertext saved to Secure Enclave.`)
-            addLog(`Kyber Capsule: ${result.kyber.capsule.substring(0, 24)}...`)
-
-            // Store encrypted blob for download (Fetch it back from backend)
-            // For this demo, we'll fetch the .enc file we just created
-            const encFileResponse = await requestQuantumVault(`/download/${result.encryptedFilename}`)
-            const encBlob = await encFileResponse.blob()
-            setEncryptedBlob(encBlob)
-
-            // 4. Display Hashing & Signing
-            addLog("Calculating SHA-256 Hash of encrypted payload...")
-            addLog(`Payload Hash: ${result.hash}`)
-
-            addLog("Signing Hash with Dilithium-3...")
-            addLog(`Dilithium Signature: ${result.dilithium.signature.substring(0, 24)}...`)
-
-            // 5. Blockchain Anchoring (Real)
-            // The backend could have done this, but let's do it explicitly via /anchor if needed
-            // OR if the backend already did it (which we didn't implement fully in /encrypt yet), we do it now.
-            // Let's call /anchor on the backend to be sure.
-
-            // First generate a proof object to anchor
-            const proofRes = await requestQuantumVault('/proof/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    blake3: result.hash, // Using SHA256 as blake3 placeholder for now
-                    filename: result.encryptedFilename,
-                    mime: "application/octet-stream",
-                    size: encBlob.size
-                })
+            setStageOutput("uploadEncrypt", {
+                assetId: upload.uri,
+                assetUri: upload.uri,
+                encryptedFilename: upload.encryptedFilename,
+                originalFileName: file.name,
+                mimeType: selectedAsset.mimeType,
+                size: file.size,
+                encryptedSize: localEncryption.encryptedSize,
+                payloadHash: upload.payloadHash,
+                originalHash: localEncryption.originalHash,
+                envelopeId: localEncryption.envelopeId,
+                storageLocation: upload.uri,
+                uploadedAt: new Date().toISOString(),
+                status: "protected-uploaded",
+                publicKeyFingerprint: localEncryption.publicKeyFingerprint,
+                capsuleHex: localEncryption.envelope.capsuleHex,
+                ivHex: localEncryption.envelope.ivHex,
             })
-            const proofData = await proofRes.json()
-
-            setStatus("anchoring")
-            addLog("Connecting to Dytallix Node...")
-            addLog("Anchoring Hash & Signature to Blockchain...")
-
-            const anchorRes = await requestQuantumVault('/anchor', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ proofId: proofData.proofId })
-            })
-            const anchorResult = await anchorRes.json()
-
-            if (!anchorResult.success) throw new Error(anchorResult.error)
-
-            addLog(`Transaction Confirmed!`)
-            addLog(`Tx Hash: ${anchorResult.transaction.hash}`)
-
-            // Create Receipt
-            setReceipt({
-                timestamp: new Date().toISOString(),
-                fileName: file.name,
-                fileSize: file.size,
-                encryption: result.encryptionMethod,
-                signature: result.signatureMethod,
-                payloadHash: result.hash,
-                txHash: anchorResult.transaction.hash,
-                signer: result.dilithium.publicKey.substring(0, 32) + "...",
-                publicKey: result.dilithium.publicKey, // Store full key for verification
-                signatureHex: result.dilithium.signature // Store actual hex signature for verification
-            })
-
-            setStatus("secured")
-            addLog("SUCCESS: File is now Quantum-Secured and Anchored.")
-
+            unlockNextStages("attestAnchor")
+            addLog("SUCCESS: File encrypted locally and uploaded as a protected asset.")
+            scheduleAdvance()
         } catch (error) {
-            console.error(error)
-            addLog(`ERROR: ${error}`)
-            setStatus("idle")
+            const workflowError = toError(error)
+            setStageStatus("uploadEncrypt", "failed", workflowError)
+            addLog(`ERROR: ${workflowError.message}`)
         }
     }
 
-    const downloadFile = () => {
-        if (!encryptedBlob || !file) return
-        const url = URL.createObjectURL(encryptedBlob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `${file.name}.enc`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-    }
-
-    const downloadReceipt = () => {
-        if (!receipt) return
-        const blob = new Blob([JSON.stringify(receipt, null, 2)], { type: "application/json" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `${file?.name}_receipt.json`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-    }
-
-    const startVerification = () => {
-        setView("verify")
-        setLogs([]) // Clear logs for verification phase
-
-        // If we just secured a file, auto-populate verification
-        if (encryptedBlob && receipt) {
-            // Convert blob to file for consistency
-            const fileFromBlob = new File([encryptedBlob], `${file?.name}.enc`, { type: "application/octet-stream" })
-            setVerifyFile(fileFromBlob)
-            setVerifyReceipt(receipt)
-            addLog("Initializing Verification Sequence...")
-            addLog("Loading local encrypted asset...")
-        } else {
-            // Clean slate for manual upload
-            setVerifyFile(null)
-            setVerifyReceipt(null)
-            addLog("Ready for verification. Please upload asset and receipt.")
+    const handleAttestAndAnchor = async () => {
+        const upload = workflow.uploadEncrypt.output
+        if (!upload) {
+            return
         }
-    }
 
-    const performVerification = async () => {
-        if (!verifyFile || !verifyReceipt) return
-
-        setStatus("verifying")
-        addLog(`Verifying integrity of ${verifyFile.name}...`)
+        clearPendingAdvance()
+        setLogs([])
+        setStageStatus("attestAnchor", "processing")
+        addLog("Preparing the ML-DSA attestation package...")
 
         try {
-            addLog(`Querying Dytallix Ledger for Tx: ${verifyReceipt.txHash}...`)
+            const attestation = await createAttestation(
+                {
+                    actorId: quantumVaultDemoConfig.actorId,
+                    assetId: upload.assetId,
+                    assetUri: upload.assetUri,
+                    envelopeId: upload.envelopeId,
+                    payloadHash: upload.payloadHash,
+                    originalHash: upload.originalHash,
+                    originalFileName: upload.originalFileName,
+                    mimeType: upload.mimeType,
+                    size: upload.size,
+                },
+                quantumVaultDemoConfig,
+                addLog,
+            )
 
-            // REAL BLOCKCHAIN VERIFICATION
-            const verifyRes = await requestQuantumVault('/verify/transaction', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    txHash: verifyReceipt.txHash,
-                    payloadHash: verifyReceipt.payloadHash,
-                    signature: verifyReceipt.signatureHex, // Use the actual hex signature
-                    publicKey: verifyReceipt.publicKey // Uses the full key we now store
-                })
+            addLog("Issuing the proof record through the live QuantumVault proof service...")
+            const proof = await quantumVaultDemoApi.generateProof({
+                payloadHash: upload.payloadHash,
+                filename: `${upload.originalFileName}.attestation.json`,
+                mimeType: "application/json",
+                size: upload.encryptedSize,
+                storageLocation: upload.assetUri,
+                metadata: {
+                    asset_id: upload.assetId,
+                    attestation_hash: attestation.attestationHash,
+                    attestation_public_key: attestation.publicKeyHex,
+                    attestation_signature: attestation.signatureHex,
+                    envelope_id: upload.envelopeId,
+                    original_hash: upload.originalHash,
+                    source_filename: upload.originalFileName,
+                },
             })
 
-            if (!verifyRes.ok) {
-                const errData = await verifyRes.json()
-                throw new Error(errData.error || "Blockchain lookup failed")
-            }
+            addLog("Submitting the proof to Dytallix for anchoring...")
+            const anchor = await quantumVaultDemoApi.anchorProof(proof.proofId)
 
-            const verifyData = await verifyRes.json()
-            addLog(`Block #${verifyData.blockchain.blockHeight} confirmed via Node `)
-            addLog(`On-Chain Status: ${verifyData.blockchain.status.toUpperCase()}`)
-
-            addLog("Recalculating local file hash...")
-
-            // REAL HASH CALCULATION
-            const fileBuffer = await verifyFile.arrayBuffer()
-            const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer)
-            const hashArray = Array.from(new Uint8Array(hashBuffer))
-            const calculatedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-
-            addLog(`Local Hash:    ${calculatedHash}`)
-
-            if (calculatedHash !== verifyReceipt.payloadHash) {
-                throw new Error("HASH MISMATCH! File integrity compromised.")
-            }
-
-            addLog("Verifying Dilithium-5 Signature (Server-Side)...")
-
-            if (verifyData.signature.valid) {
-                addLog(verifyData.signature.message)
-            } else {
-                throw new Error(verifyData.signature.message)
-            }
-
-            setStatus("verified")
-            addLog("SUCCESS: Asset integrity verified against immutable ledger.")
-
-        } catch (error: any) {
-            addLog(`ERROR: Verification failed. ${error.message || error}`)
-            setStatus("idle") // Allow retry
+            setStageOutput("attestAnchor", {
+                proofId: anchor.proofId,
+                attestationHash: attestation.attestationHash,
+                payloadHash: upload.payloadHash,
+                transactionHash: anchor.transactionHash,
+                blockHeight: anchor.blockHeight,
+                submissionReference: anchor.proofId,
+                anchoredAt: anchor.anchoredAt,
+                status: anchor.status,
+                attestationSignature: attestation.signatureHex,
+                attestationPublicKey: attestation.publicKeyHex,
+                attestationPublicKeyFingerprint: attestation.publicKeyFingerprint,
+                attestationIssuedAt: attestation.issuedAt,
+            })
+            unlockNextStages("verify")
+            addLog(`SUCCESS: Proof ${anchor.proofId} anchored on Dytallix at block ${anchor.blockHeight}.`)
+            scheduleAdvance()
+        } catch (error) {
+            const workflowError = toError(error)
+            setStageStatus("attestAnchor", "failed", workflowError)
+            addLog(`ERROR: ${workflowError.message}`)
         }
     }
 
-    const handleVerifyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setVerifyFile(e.target.files[0])
+    const handleVerify = async () => {
+        const anchor = workflow.attestAnchor.output
+        if (!anchor) {
+            return
+        }
+
+        clearPendingAdvance()
+        setLogs([])
+        setStageStatus("verify", "processing")
+        addLog("Loading the anchored proof record from QuantumVault explorer lookup...")
+
+        try {
+            const lookup = await quantumVaultDemoApi.lookupAnchor(anchor.transactionHash)
+            addLog("Validating the anchored payload hash and attestation signature against Dytallix...")
+            const verification = await quantumVaultDemoApi.verifyTransaction({
+                transactionHash: anchor.transactionHash,
+                payloadHash: anchor.payloadHash,
+                signatureHex: anchor.attestationSignature,
+                publicKeyHex: anchor.attestationPublicKey,
+            })
+
+            if (!lookup.onChainVerified) {
+                throw new Error("The Dytallix lookup did not confirm the anchored proof relationship.")
+            }
+
+            if (!verification.signatureValid) {
+                throw new Error(verification.signatureMessage)
+            }
+
+            const chainStatus = await quantumVaultDemoApi.fetchBlockchainStatus().catch(() => ({ latestHeight: null }))
+            const chainTx = await fetchChainTransaction(anchor.transactionHash)
+            const confirmationCount = chainStatus.latestHeight === null ? null : Math.max(chainStatus.latestHeight - verification.blockHeight + 1, 0)
+            const explorerUrl = `${quantumVaultDemoConfig.explorerBaseUrl}?search=${encodeURIComponent(anchor.transactionHash)}`
+
+            setStageOutput("verify", {
+                transactionHash: anchor.transactionHash,
+                payloadHash: anchor.payloadHash,
+                attestationHash: anchor.attestationHash,
+                blockHeight: verification.blockHeight,
+                blockHash: typeof chainTx?.block_hash === "string" ? chainTx.block_hash : typeof chainTx?.blockHash === "string" ? chainTx.blockHash : null,
+                timestamp: verification.timestamp || (typeof chainTx?.timestamp === "string" ? chainTx.timestamp : lookup.anchoredAt),
+                confirmationStatus: confirmationCount === null ? verification.status : `${confirmationCount} confirmations observed`,
+                finalityStatus: verification.status,
+                verificationStatus: "verified",
+                verificationTimestamp: new Date().toISOString(),
+                explorerUrl,
+                onChainVerified: true,
+                confirmationCount,
+            })
+            unlockNextStages("decryptReview")
+            addLog(`SUCCESS: File proof anchored and attested in block ${verification.blockHeight}.`)
+            scheduleAdvance()
+        } catch (error) {
+            const workflowError = toError(error)
+            setStageStatus("verify", "failed", workflowError)
+            addLog(`ERROR: ${workflowError.message}`)
         }
     }
 
-    const handleVerifyReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0]
-            const reader = new FileReader()
-            reader.onload = (event) => {
-                try {
-                    const json = JSON.parse(event.target?.result as string)
-                    setVerifyReceipt(json)
-                } catch (err) {
-                    addLog("ERROR: Invalid receipt file format.")
-                }
+    const handleDecryptAndReview = async () => {
+        const upload = workflow.uploadEncrypt.output
+        const verification = workflow.verify.output
+        const session = sessionSecretsRef.current
+        if (!upload || !verification || !session) {
+            return
+        }
+
+        clearPendingAdvance()
+        setLogs([])
+        setStageStatus("decryptReview", "processing")
+        addLog("Authorizing local recovery from the ML-KEM session envelope.")
+
+        try {
+            previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+            previewUrlsRef.current = []
+            if (recoveredBlobUrlRef.current) {
+                URL.revokeObjectURL(recoveredBlobUrlRef.current)
+                recoveredBlobUrlRef.current = null
             }
-            reader.readAsText(file)
+
+            addLog("Downloading the protected asset from the live QuantumVault storage endpoint...")
+            const download = await quantumVaultDemoApi.downloadEncryptedAsset(upload.assetId)
+            addLog(`Recovered encrypted asset ${parseEncryptedFilename(upload.assetId)} from storage.`)
+
+            const decrypted = await decryptAsset(download.bytes, session, quantumVaultDemoConfig, addLog)
+            if (decrypted.recoveredHash !== upload.originalHash) {
+                throw new Error("Recovered asset fingerprint does not match the original local asset fingerprint.")
+            }
+
+            const preview = await buildAssetPreview(upload.originalFileName, upload.mimeType, decrypted.bytes)
+            if (preview.objectUrl) {
+                previewUrlsRef.current.push(preview.objectUrl)
+            }
+
+            const recoveredBytes = Uint8Array.from(decrypted.bytes)
+            const recoveredBlob = new Blob([recoveredBytes], { type: upload.mimeType })
+            recoveredBlobUrlRef.current = URL.createObjectURL(recoveredBlob)
+
+            setStageOutput("decryptReview", {
+                decryptionEventId: crypto.randomUUID(),
+                authorizedIdentity: `Local recovery key ${session.publicKeyFingerprint}`,
+                assetFingerprint: decrypted.recoveredHash,
+                decryptedAt: new Date().toISOString(),
+                status: "decrypted",
+                authorizationStatus: verification.onChainVerified ? "Authorized after live Dytallix verification" : "Authorization denied",
+                recoveredSize: decrypted.bytes.byteLength,
+                preview,
+                downloadName: upload.originalFileName,
+            })
+            unlockNextStages("lifecycle")
+            addLog("SUCCESS: Asset decrypted locally and rendered for review.")
+            scheduleAdvance()
+        } catch (error) {
+            const workflowError = toError(error)
+            setStageStatus("decryptReview", "failed", workflowError)
+            addLog(`ERROR: ${workflowError.message}`)
         }
     }
+
+    const handleBuildLifecycle = async () => {
+        const upload = workflow.uploadEncrypt.output
+        const anchor = workflow.attestAnchor.output
+        const verify = workflow.verify.output
+        const decrypt = workflow.decryptReview.output
+        if (!upload || !anchor || !verify || !decrypt) {
+            return
+        }
+
+        setLogs([])
+        setStageStatus("lifecycle", "processing")
+        addLog("Normalizing the real workflow outputs into the lifecycle audit trail...")
+
+        try {
+            const events: AuditEvent[] = [
+                {
+                    id: `${upload.assetId}:upload`,
+                    stepName: "Upload",
+                    timestamp: upload.uploadedAt,
+                    actor: quantumVaultDemoConfig.actorId,
+                    artifactProduced: upload.assetId,
+                    status: upload.status,
+                    associatedValues: [
+                        { label: "Asset ID", value: upload.assetId },
+                        { label: "File", value: upload.originalFileName },
+                    ],
+                },
+                {
+                    id: `${upload.assetId}:encrypt`,
+                    stepName: "Encryption",
+                    timestamp: upload.uploadedAt,
+                    actor: `${quantumVaultDemoConfig.kemAlgorithm} browser envelope`,
+                    artifactProduced: upload.envelopeId,
+                    status: "protected",
+                    associatedValues: [
+                        { label: "Payload hash", value: upload.payloadHash },
+                        { label: "Envelope ID", value: upload.envelopeId },
+                    ],
+                },
+                {
+                    id: `${anchor.proofId}:attest`,
+                    stepName: "Attestation",
+                    timestamp: anchor.attestationIssuedAt,
+                    actor: quantumVaultDemoConfig.signatureAlgorithm,
+                    artifactProduced: anchor.attestationHash,
+                    status: "signed",
+                    associatedValues: [
+                        { label: "Payload hash", value: anchor.payloadHash },
+                        { label: "Proof ID", value: anchor.proofId },
+                    ],
+                },
+                {
+                    id: `${anchor.proofId}:anchor`,
+                    stepName: "Anchoring",
+                    timestamp: anchor.anchoredAt,
+                    actor: "Dytallix / QuantumVault API",
+                    artifactProduced: anchor.transactionHash,
+                    status: anchor.status,
+                    associatedValues: [
+                        { label: "Block height", value: String(anchor.blockHeight) },
+                        { label: "Submission reference", value: anchor.submissionReference },
+                    ],
+                },
+                {
+                    id: `${anchor.proofId}:verify`,
+                    stepName: "Verification",
+                    timestamp: verify.verificationTimestamp,
+                    actor: "Embedded Dytallix verifier",
+                    artifactProduced: verify.transactionHash,
+                    status: verify.verificationStatus,
+                    associatedValues: [
+                        { label: "Block hash", value: verify.blockHash || "Unavailable" },
+                        { label: "Finality", value: verify.finalityStatus },
+                    ],
+                },
+                {
+                    id: `${decrypt.decryptionEventId}:decrypt`,
+                    stepName: "Decryption",
+                    timestamp: decrypt.decryptedAt,
+                    actor: decrypt.authorizedIdentity,
+                    artifactProduced: decrypt.decryptionEventId,
+                    status: decrypt.status,
+                    associatedValues: [
+                        { label: "Asset fingerprint", value: decrypt.assetFingerprint },
+                        { label: "Authorization", value: decrypt.authorizationStatus },
+                    ],
+                },
+                {
+                    id: `${decrypt.decryptionEventId}:review`,
+                    stepName: "Review",
+                    timestamp: decrypt.decryptedAt,
+                    actor: "QuantumVault review console",
+                    artifactProduced: decrypt.downloadName,
+                    status: "rendered",
+                    associatedValues: [
+                        { label: "Preview kind", value: decrypt.preview.kind },
+                        { label: "Recovered size", value: formatBytes(decrypt.recoveredSize) },
+                    ],
+                },
+            ]
+
+            setStageOutput("lifecycle", {
+                completedAt: new Date().toISOString(),
+                banner: "PQC Lifecycle Complete",
+                summary:
+                    "The uploaded asset was encrypted under a live ML-KEM browser envelope, attested with ML-DSA, anchored on Dytallix, verified against the actual on-chain record, decrypted locally, and recovered for review and download.",
+                events,
+            })
+            addLog("SUCCESS: Auditable lifecycle record built from real workflow state.")
+        } catch (error) {
+            const workflowError = toError(error)
+            setStageStatus("lifecycle", "failed", workflowError)
+            addLog(`ERROR: ${workflowError.message}`)
+        }
+    }
+
+    const activeError =
+        activeSlide.id === "upload-encrypt"
+            ? workflow.uploadEncrypt.error
+            : activeSlide.id === "attest-anchor"
+                ? workflow.attestAnchor.error
+                : activeSlide.id === "verify"
+                    ? workflow.verify.error
+                    : activeSlide.id === "decrypt-review"
+                        ? workflow.decryptReview.error
+                        : workflow.lifecycle.error
 
     return (
         <div className="w-full overflow-hidden p-1">
-            <div
-                className="transition-transform duration-700 ease-in-out flex w-[200%]"
-                style={{ transform: view === "secure" ? "translateX(0)" : "translateX(-50%)" }}
-            >
-                {/* VIEW 1: SECURE */}
-                <div className="w-1/2 px-1">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                        {/* Left: Upload & Action */}
-                        <GlassPanel hoverEffect={true} className="p-8 space-y-8 h-full">
+            <div className="flex w-[500%] transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlideIndex * 20}%)` }}>
+                <div className="w-1/5 px-1">
+                    <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-2">
+                        <GlassPanel hoverEffect={true} className="h-full space-y-8 p-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{slides[0].label}</div>
+                                        <h3 className="mt-2 text-2xl font-bold text-white">{slides[0].title}</h3>
+                                    </div>
+                                    <StatusBadge status={workflow.uploadEncrypt.status} />
+                                </div>
+                                <p className="text-muted-foreground">{slides[0].summary}</p>
+                            </div>
+
                             <div
-                                className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer ${file ? 'border-primary bg-primary/5' : 'border-white/10 hover:border-white/20'
-                                    }`}
-                                onClick={() => status === "idle" && fileInputRef.current?.click()}
+                                className={`cursor-pointer rounded-xl border-2 border-dashed p-12 text-center transition-colors ${selectedAsset ? "border-primary bg-primary/5" : "border-white/10 hover:border-white/20"}`}
+                                onClick={() => workflow.uploadEncrypt.status !== "processing" && fileInputRef.current?.click()}
                             >
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileChange}
-                                    className="hidden"
-                                    disabled={status !== "idle"}
-                                />
-                                {file ? (
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={workflow.uploadEncrypt.status === "processing"} />
+                                {selectedAsset ? (
                                     <div className="space-y-4">
-                                        <FileKey className="w-12 h-12 mx-auto text-primary" />
+                                        <FileKey className="mx-auto h-12 w-12 text-primary" />
                                         <div>
-                                            <p className="font-bold text-lg">{file.name}</p>
-                                            <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(2)} KB</p>
+                                            <p className="text-lg font-bold">{selectedAsset.name}</p>
+                                            <p className="text-sm text-muted-foreground">{formatBytes(selectedAsset.size)}</p>
                                         </div>
-                                        {status === "idle" && <p className="text-xs text-primary">Click to change file</p>}
+                                        {workflow.uploadEncrypt.status !== "processing" ? <p className="text-xs text-primary">Click to change file</p> : null}
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
+                                        <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                                         <div>
-                                            <p className="font-bold text-lg">Secure a File</p>
+                                            <p className="text-lg font-bold">Secure a File</p>
                                             <p className="text-sm text-muted-foreground">Drag and drop or click to upload</p>
                                         </div>
-                                        <div className="inline-block px-3 py-1 rounded-full bg-white/5 text-xs text-muted-foreground">
-                                            Client-side PQC Encryption
-                                        </div>
+                                        <div className="inline-block rounded-full bg-white/5 px-3 py-1 text-xs text-muted-foreground">Client-side PQC encryption</div>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex justify-center">
-                                <button
-                                    onClick={() => {
-                                        setView("verify")
-                                        setVerifyFile(null)
-                                        setVerifyReceipt(null)
-                                        setLogs([])
-                                    }}
-                                    className="text-sm text-muted-foreground hover:text-blue-400 transition-colors flex items-center gap-2"
-                                >
-                                    <ShieldCheck className="w-4 h-4" />
-                                    Already have a secure file? Verify it here
-                                </button>
-                            </div>
+                            <Button size="lg" className="h-14 w-full text-lg" disabled={!selectedAsset || workflow.uploadEncrypt.status === "processing"} onClick={handleUploadAndEncrypt}>
+                                {workflow.uploadEncrypt.status === "processing" ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Encrypting...</> : <><Lock className="mr-2 h-5 w-5" /> {slides[0].actionLabel}</>}
+                            </Button>
 
-                            {status === "idle" || status === "encrypting" || status === "anchoring" ? (
-                                <Button
-                                    size="lg"
-                                    className="w-full text-lg h-14"
-                                    disabled={status !== "idle"}
-                                    onClick={() => {
-                                        if (!file) {
-                                            fileInputRef.current?.click()
-                                        } else {
-                                            handleSecureFile()
-                                        }
-                                    }}
-                                >
-                                    {status === "idle" && <><Lock className="w-5 h-5 mr-2" /> {file ? "Encrypt & Anchor" : "Select File to Encrypt"}</>}
-                                    {status === "encrypting" && <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Encrypting...</>}
-                                    {status === "anchoring" && <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Anchoring...</>}
-                                </Button>
-                            ) : (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                                    <div className="grid grid-cols-1 gap-3">
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => { downloadFile(); setTimeout(downloadReceipt, 500); }}
-                                            className="h-12 border-primary/50 text-primary hover:bg-primary/10 w-full"
-                                        >
-                                            <FileKey className="w-4 h-4 mr-2" /> Download Secure Package (File + Receipt)
-                                        </Button>
-                                        <Button
-                                            size="lg"
-                                            className="w-full text-lg h-14 bg-green-600 hover:bg-green-700 text-white"
-                                            onClick={startVerification}
-                                        >
-                                            <ShieldCheck className="w-5 h-5 mr-2" /> Verify Integrity
-                                        </Button>
-                                    </div>
-
-                                    <div className="bg-white/5 rounded-lg p-5 space-y-4 text-sm border border-white/10">
-                                        <div>
-                                            <h4 className="font-bold text-white mb-1 flex items-center gap-2">
-                                                <CheckCircle className="w-4 h-4 text-green-400" /> What just happened?
-                                            </h4>
-                                            <p className="text-muted-foreground leading-relaxed">
-                                                Your file was encrypted using <span className="text-blue-400">Kyber-1024</span> (Post-Quantum Key Encapsulation) and signed with <span className="text-purple-400">Dilithium-5</span>. A hash of this encrypted payload was anchored to the Dytallix Blockchain.
-                                            </p>
-                                        </div>
-                                        <div className="border-t border-white/10 pt-3">
-                                            <h4 className="font-bold text-white mb-1 flex items-center gap-2">
-                                                <Activity className="w-4 h-4 text-blue-400" /> What's next?
-                                            </h4>
-                                            <p className="text-muted-foreground leading-relaxed">
-                                                1. <strong>Download</strong> the secure package for your records.
-                                                <br />
-                                                2. You can verify your file's integrity by clicking on the button above this message.
-                                            </p>
-                                        </div>
-                                    </div>
+                            {workflow.uploadEncrypt.output ? (
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <DataField label="Asset ID" value={workflow.uploadEncrypt.output.assetId} />
+                                    <DataField label="Payload hash" value={workflow.uploadEncrypt.output.payloadHash} tone="text-blue-200" />
+                                    <DataField label="Encryption envelope ID" value={workflow.uploadEncrypt.output.envelopeId} tone="text-green-200" />
+                                    <DataField label="Timestamp" value={formatDateTime(workflow.uploadEncrypt.output.uploadedAt)} />
+                                    <DataField label="Status" value={workflow.uploadEncrypt.output.status} tone="text-green-200" />
+                                    <DataField label="Stored as" value={workflow.uploadEncrypt.output.encryptedFilename} />
                                 </div>
-                            )}
+                            ) : null}
                         </GlassPanel>
 
-                        {/* Right: Live Terminal */}
                         <LiveLogPanel logs={logs} title="Live Security Log" emptyMessage={"Waiting for input...\nSystem Ready.\n> _"} />
                     </div>
                 </div>
 
-                {/* VIEW 2: VERIFY */}
-                <div className="w-1/2 px-1">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start h-full">
-                        {/* Left: Verification Controls */}
-                        <GlassPanel hoverEffect={true} className="p-8 space-y-8 h-full flex flex-col">
-                            <div className="text-center space-y-4">
-                                <div className="w-20 h-20 mx-auto rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
-                                    <ShieldCheck className="w-10 h-10" />
+                <div className="w-1/5 px-1">
+                    <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-2">
+                        <GlassPanel hoverEffect={true} className="h-full space-y-8 p-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{slides[1].label}</div>
+                                        <h3 className="mt-2 text-2xl font-bold text-white">{slides[1].title}</h3>
+                                    </div>
+                                    <StatusBadge status={workflow.attestAnchor.status} />
                                 </div>
-                                <h3 className="text-2xl font-bold">Verify Asset Integrity</h3>
-                                <p className="text-muted-foreground">
-                                    Compare your local encrypted file against the immutable record on the Dytallix Blockchain.
-                                </p>
+                                <p className="text-muted-foreground">{slides[1].summary}</p>
                             </div>
 
-                            <div className="bg-white/5 rounded-lg p-6 space-y-4 border border-white/10">
-                                {verifyFile && verifyReceipt ? (
-                                    <>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Asset Name:</span>
-                                            <span className="font-mono">{verifyReceipt.fileName}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Encryption:</span>
-                                            <span className="font-mono text-blue-400">{verifyReceipt.encryption}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Signature:</span>
-                                            <span className="font-mono text-purple-400">{verifyReceipt.signature}</span>
-                                        </div>
-                                        <div className="pt-4 border-t border-white/10">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="w-full text-xs text-muted-foreground hover:text-white"
-                                                onClick={() => {
-                                                    setVerifyFile(null)
-                                                    setVerifyReceipt(null)
-                                                    setLogs([])
-                                                }}
-                                            >
-                                                Clear & Verify Different Asset
-                                            </Button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-xs text-blue-200 space-y-2">
-                                            <p className="font-bold flex items-center gap-2">
-                                                <Info className="w-3 h-3" /> Instructions:
-                                            </p>
-                                            <ul className="list-disc pl-4 space-y-1 opacity-90">
-                                                <li><strong>Top Box:</strong> Upload the <code className="bg-black/30 px-1 rounded">.enc</code> file (e.g., <em>MyFile.pdf.enc</em>).</li>
-                                                <li><strong>Bottom Box:</strong> Upload the <code className="bg-black/30 px-1 rounded">.json</code> receipt file.</li>
-                                            </ul>
-                                        </div>
-
-                                        {/* File Upload */}
-                                        <div
-                                            className={`border border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${verifyFile ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 hover:border-white/20'}`}
-                                            onClick={() => verifyFileInputRef.current?.click()}
-                                        >
-                                            <input
-                                                type="file"
-                                                ref={verifyFileInputRef}
-                                                onChange={handleVerifyFileChange}
-                                                className="hidden"
-                                                accept=".enc"
-                                            />
-                                            <div className="flex items-center justify-center gap-3">
-                                                <FileKey className={`w-5 h-5 ${verifyFile ? 'text-green-400' : 'text-muted-foreground'}`} />
-                                                <span className="text-sm font-medium">
-                                                    {verifyFile ? verifyFile.name : "Upload Encrypted File (.enc)"}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Receipt Upload */}
-                                        <div
-                                            className={`border border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${verifyReceipt ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 hover:border-white/20'}`}
-                                            onClick={() => verifyReceiptInputRef.current?.click()}
-                                        >
-                                            <input
-                                                type="file"
-                                                ref={verifyReceiptInputRef}
-                                                onChange={handleVerifyReceiptChange}
-                                                className="hidden"
-                                                accept=".json"
-                                            />
-                                            <div className="flex items-center justify-center gap-3">
-                                                <FileText className={`w-5 h-5 ${verifyReceipt ? 'text-green-400' : 'text-muted-foreground'}`} />
-                                                <span className="text-sm font-medium">
-                                                    {verifyReceipt ? "Receipt Loaded" : "Upload Receipt (.json)"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <DataField label="Asset ID" value={workflow.uploadEncrypt.output?.assetId || "Blocked"} />
+                                <DataField label="Payload hash" value={workflow.uploadEncrypt.output?.payloadHash || "Blocked"} tone="text-blue-200" />
                             </div>
 
-                            {status === "verified" ? (
-                                <div className="space-y-4">
-                                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-center gap-4 text-green-400 mb-4">
-                                        <CheckCircle className="w-6 h-6 shrink-0" />
-                                        <div>
-                                            <p className="font-bold">Verification Successful</p>
-                                            <p className="text-xs opacity-80">Hashes match. Signature valid.</p>
-                                        </div>
-                                    </div>
+                            <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-sm leading-7 text-muted-foreground">
+                                The attestation stage signs the protected payload hash with {quantumVaultDemoConfig.signatureAlgorithm}, creates a real proof record, and submits that proof to Dytallix for anchoring.
+                            </div>
 
-                                    {/* Copyable Details */}
-                                    <div className="space-y-3 bg-white/5 p-4 rounded-lg border border-white/10">
-                                        <div>
-                                            <label className="text-xs text-muted-foreground block mb-1">Transaction Hash (Anchor ID)</label>
-                                            <div className="flex gap-2">
-                                                <code className="bg-black/30 p-2 rounded text-xs font-mono flex-1 overflow-x-auto text-blue-300">
-                                                    {verifyReceipt?.txHash}
-                                                </code>
-                                                <Button
-                                                    size="sm" variant="outline" className="h-auto py-1 px-2"
-                                                    onClick={() => navigator.clipboard.writeText(verifyReceipt?.txHash || "")}
-                                                >
-                                                    <Copy className="w-3 h-3" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-muted-foreground block mb-1">Payload Hash</label>
-                                            <div className="flex gap-2">
-                                                <code className="bg-black/30 p-2 rounded text-xs font-mono flex-1 overflow-x-auto text-purple-300">
-                                                    {verifyReceipt?.payloadHash}
-                                                </code>
-                                                <Button
-                                                    size="sm" variant="outline" className="h-auto py-1 px-2"
-                                                    onClick={() => navigator.clipboard.writeText(verifyReceipt?.payloadHash || "")}
-                                                >
-                                                    <Copy className="w-3 h-3" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className="pt-2">
-                                            <Link to="/build/blockchain" target="_blank" className="text-xs flex items-center gap-1 text-primary hover:underline">
-                                                <ExternalLink className="w-3 h-3" />
-                                                View on Dytallix Explorer (Search for Tx Hash)
-                                            </Link>
-                                        </div>
-                                    </div>
-                                    <Button variant="outline" className="w-full" onClick={() => {
-                                        setView("secure")
-                                        setStatus("idle")
-                                        setFile(null)
-                                        setLogs([])
-                                    }}>
-                                        Secure Another File
-                                    </Button>
+                            <Button size="lg" className="h-14 w-full bg-green-600 text-lg text-white hover:bg-green-700" disabled={workflow.attestAnchor.status === "processing" || workflow.uploadEncrypt.status !== "succeeded"} onClick={handleAttestAndAnchor}>
+                                {workflow.attestAnchor.status === "processing" ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Anchoring...</> : <><Link2 className="mr-2 h-5 w-5" /> {slides[1].actionLabel}</>}
+                            </Button>
+
+                            {workflow.attestAnchor.output ? (
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <DataField label="Attestation hash" value={workflow.attestAnchor.output.attestationHash} tone="text-green-200" />
+                                    <DataField label="Payload hash" value={workflow.attestAnchor.output.payloadHash} tone="text-blue-200" />
+                                    <DataField label="Transaction hash" value={workflow.attestAnchor.output.transactionHash} tone="text-green-200" />
+                                    <DataField label="Block reference" value={`Height ${workflow.attestAnchor.output.blockHeight}`} />
+                                    <DataField label="Anchored at" value={formatDateTime(workflow.attestAnchor.output.anchoredAt)} />
+                                    <DataField label="Status" value={workflow.attestAnchor.output.status} tone="text-green-200" />
                                 </div>
-                            ) : (
-                                <Button
-                                    size="lg"
-                                    className="w-full text-lg h-14 bg-blue-600 hover:bg-blue-700"
-                                    onClick={performVerification}
-                                    disabled={status === "verifying" || !verifyFile || !verifyReceipt}
-                                >
-                                    {status === "verifying" ? (
-                                        <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verifying...</>
-                                    ) : (
-                                        <><CheckCircle className="w-5 h-5 mr-2" /> Run Verification</>
-                                    )}
-                                </Button>
-                            )}
+                            ) : null}
                         </GlassPanel>
 
-                        {/* Right: Live Terminal (Reused) */}
-                        <LiveLogPanel logs={logs} title="Live Verification Log" emptyMessage={"Ready to verify...\n> _"} />
+                        <LiveLogPanel logs={logs} title="Live Attestation Log" emptyMessage={"Awaiting anchored proof request...\n> _"} />
                     </div>
                 </div>
+
+                <div className="w-1/5 px-1">
+                    <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-2">
+                        <GlassPanel hoverEffect={true} className="h-full space-y-8 p-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{slides[2].label}</div>
+                                        <h3 className="mt-2 text-2xl font-bold text-white">{slides[2].title}</h3>
+                                    </div>
+                                    <StatusBadge status={workflow.verify.status} />
+                                </div>
+                                <p className="text-muted-foreground">{slides[2].summary}</p>
+                            </div>
+
+                            <Button size="lg" className="h-14 w-full bg-blue-600 text-lg text-white hover:bg-blue-700" disabled={workflow.verify.status === "processing" || workflow.attestAnchor.status !== "succeeded"} onClick={handleVerify}>
+                                {workflow.verify.status === "processing" ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</> : <><ShieldCheck className="mr-2 h-5 w-5" /> {slides[2].actionLabel}</>}
+                            </Button>
+
+                            <div className="rounded-lg border border-blue-400/20 bg-blue-500/5 p-6">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Mini Explorer</div>
+                                        <div className="mt-2 text-lg font-semibold text-white">Embedded Dytallix verification console</div>
+                                    </div>
+                                    {workflow.verify.output ? (
+                                        <a className="inline-flex items-center gap-2 text-sm font-medium text-blue-200 hover:text-blue-100" href={workflow.verify.output.explorerUrl} target="_blank" rel="noreferrer">
+                                            Open in Explorer
+                                            <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                    ) : null}
+                                </div>
+
+                                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <DataField label="Transaction hash" value={workflow.verify.output?.transactionHash || workflow.attestAnchor.output?.transactionHash || "Pending"} tone="text-green-200" />
+                                    <DataField label="Payload hash" value={workflow.verify.output?.payloadHash || workflow.attestAnchor.output?.payloadHash || "Pending"} tone="text-blue-200" />
+                                    <DataField label="Attestation hash" value={workflow.verify.output?.attestationHash || workflow.attestAnchor.output?.attestationHash || "Pending"} tone="text-green-200" />
+                                    <DataField label="Block height" value={workflow.verify.output ? String(workflow.verify.output.blockHeight) : "Pending"} />
+                                    <DataField label="Block hash" value={workflow.verify.output?.blockHash || "Pending"} />
+                                    <DataField label="Timestamp" value={formatDateTime(workflow.verify.output?.timestamp)} />
+                                    <DataField label="Confirmation status" value={workflow.verify.output?.confirmationStatus || "Pending"} />
+                                    <DataField label="Verification status" value={workflow.verify.output?.verificationStatus || "Pending"} tone="text-green-200" />
+                                </div>
+
+                                {workflow.verify.output ? <div className="mt-5 rounded-lg border border-green-400/20 bg-green-500/10 p-4 text-sm text-green-100">The file proof is anchored and attested in block {workflow.verify.output.blockHeight}{workflow.verify.output.blockHash ? ` (${truncateMiddle(workflow.verify.output.blockHash, 14, 12)})` : ""}.</div> : null}
+                            </div>
+                        </GlassPanel>
+
+                        <LiveLogPanel logs={logs} title="Live Verification Log" emptyMessage={"Ready to verify on Dytallix...\n> _"} />
+                    </div>
+                </div>
+
+                <div className="w-1/5 px-1">
+                    <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-2">
+                        <GlassPanel hoverEffect={true} className="h-full space-y-8 p-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{slides[3].label}</div>
+                                        <h3 className="mt-2 text-2xl font-bold text-white">{slides[3].title}</h3>
+                                    </div>
+                                    <StatusBadge status={workflow.decryptReview.status} />
+                                </div>
+                                <p className="text-muted-foreground">{slides[3].summary}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <DataField label="Asset ID" value={workflow.uploadEncrypt.output?.assetId || "Pending"} />
+                                <DataField label="Authorization" value={workflow.verify.status === "succeeded" ? "Verified and eligible for local recovery" : "Blocked until verification succeeds"} tone="text-amber-200" />
+                            </div>
+
+                            <Button size="lg" className="h-14 w-full bg-amber-500 text-lg text-black hover:bg-amber-400" disabled={workflow.decryptReview.status === "processing" || workflow.verify.status !== "succeeded"} onClick={handleDecryptAndReview}>
+                                {workflow.decryptReview.status === "processing" ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Decrypting...</> : <><KeyRound className="mr-2 h-5 w-5" /> {slides[3].actionLabel}</>}
+                            </Button>
+
+                            {workflow.decryptReview.output ? (
+                                <div className="space-y-5">
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <DataField label="Decryption event ID" value={workflow.decryptReview.output.decryptionEventId} />
+                                        <DataField label="Authorized identity" value={workflow.decryptReview.output.authorizedIdentity} tone="text-green-200" />
+                                        <DataField label="Asset fingerprint" value={workflow.decryptReview.output.assetFingerprint} tone="text-blue-200" />
+                                        <DataField label="Decrypted at" value={formatDateTime(workflow.decryptReview.output.decryptedAt)} />
+                                        <DataField label="Status" value={workflow.decryptReview.output.status} tone="text-green-200" />
+                                        <DataField label="Recovered size" value={formatBytes(workflow.decryptReview.output.recoveredSize)} />
+                                    </div>
+
+                                    <GlassPanel variant="card" className="border-white/10 bg-white/5 p-5">
+                                        <div className="flex items-center gap-3">
+                                            <Eye className="h-5 w-5 text-amber-200" />
+                                            <div className="text-lg font-semibold text-white">{workflow.decryptReview.output.preview.title}</div>
+                                        </div>
+                                        <div className="mt-5 space-y-4">
+                                            {workflow.decryptReview.output.preview.kind === "image" && workflow.decryptReview.output.preview.objectUrl ? <img alt="Recovered asset preview" className="max-h-[280px] w-full rounded-xl border border-white/10 object-contain" src={workflow.decryptReview.output.preview.objectUrl} /> : null}
+                                            {workflow.decryptReview.output.preview.kind === "pdf" && workflow.decryptReview.output.preview.objectUrl ? <iframe className="h-[280px] w-full rounded-xl border border-white/10 bg-white" src={workflow.decryptReview.output.preview.objectUrl} title="Recovered PDF preview" /> : null}
+                                            {workflow.decryptReview.output.preview.content ? <pre className="max-h-[280px] overflow-auto rounded-xl border border-white/10 bg-black/40 p-4 text-xs leading-6 text-slate-200">{workflow.decryptReview.output.preview.content}</pre> : null}
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {workflow.decryptReview.output.preview.metadataLines.map((line) => (
+                                                    <div key={line} className="rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
+                                                        {line}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </GlassPanel>
+                                </div>
+                            ) : null}
+                        </GlassPanel>
+
+                        <LiveLogPanel logs={logs} title="Live Recovery Log" emptyMessage={"Recovery path locked until verification succeeds...\n> _"} />
+                    </div>
+                </div>
+
+                <div className="w-1/5 px-1">
+                    <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-2">
+                        <GlassPanel hoverEffect={true} className="h-full space-y-8 p-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{slides[4].label}</div>
+                                        <h3 className="mt-2 text-2xl font-bold leading-tight text-white">Review the PQC-lifecycled digital asset through an auditable lifecycle display</h3>
+                                    </div>
+                                    <StatusBadge status={workflow.lifecycle.status} />
+                                </div>
+                                <p className="text-muted-foreground">{slides[4].summary}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <Button size="lg" className="h-14 w-full bg-green-600 text-lg text-white hover:bg-green-700" disabled={workflow.lifecycle.status === "processing" || workflow.decryptReview.status !== "succeeded"} onClick={handleBuildLifecycle}>
+                                    {workflow.lifecycle.status === "processing" ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Building audit...</> : <><CheckCircle className="mr-2 h-5 w-5" /> {slides[4].actionLabel}</>}
+                                </Button>
+                                <DownloadRecoveredFileButton url={recoveredFileUrl} fileName={recoveredFileName} />
+                            </div>
+
+                            {workflow.lifecycle.output ? (
+                                <div className="space-y-5">
+                                    <div className="rounded-lg border border-green-400/20 bg-green-500/10 p-5">
+                                        <div className="text-[11px] uppercase tracking-[0.22em] text-green-200">Lifecycle completion</div>
+                                        <div className="mt-2 text-2xl font-semibold text-white">{workflow.lifecycle.output.banner}</div>
+                                        <p className="mt-3 text-sm leading-7 text-green-50/90">{workflow.lifecycle.output.summary}</p>
+                                    </div>
+
+                                    <div className="max-h-[420px] overflow-auto rounded-xl border border-white/10 bg-black/30">
+                                        <div className="divide-y divide-white/10">
+                                            {workflow.lifecycle.output.events.map((event) => (
+                                                <div key={event.id} className="space-y-3 p-5">
+                                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                        <div className="text-sm font-semibold text-white">{event.stepName}</div>
+                                                        <div className="text-xs uppercase tracking-[0.18em] text-green-200">{event.status}</div>
+                                                    </div>
+                                                    <div className="text-xs text-slate-400">{formatDateTime(event.timestamp)} · {event.actor}</div>
+                                                    <div className="break-all rounded-lg border border-white/10 bg-black/20 p-3 font-mono text-xs text-slate-200">{event.artifactProduced}</div>
+                                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                        {event.associatedValues.map((item) => (
+                                                            <DataField key={`${event.id}-${item.label}`} label={item.label} value={item.value} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-lg border border-blue-400/20 bg-blue-500/5 p-4 text-sm text-blue-100">
+                                        Download the recovered file above to confirm it matches the asset you originally uploaded and carried through the full PQC lifecycle.
+                                    </div>
+                                </div>
+                            ) : null}
+                        </GlassPanel>
+
+                        <LiveLogPanel logs={logs} title="Lifecycle Audit Log" emptyMessage={"Lifecycle audit will render from real workflow state...\n> _"} />
+                    </div>
+                </div>
+            </div>
+
+            {activeError ? (
+                <div className="mt-6 rounded-xl border border-red-400/20 bg-red-500/10 p-5 text-sm text-red-100">
+                    <div className="flex items-start gap-3">
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                        <div>
+                            <div className="font-semibold uppercase tracking-[0.18em]">{activeError.type}</div>
+                            <div className="mt-2 leading-7">{activeError.message}</div>
+                            {activeError.details ? <div className="mt-2 text-red-200/80">{activeError.details}</div> : null}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Info className="h-4 w-4" />
+                    Forward navigation remains locked until the current card succeeds. Completed cards now remain visible for 6 seconds before auto-advancing.
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" className="border-red-400/20 bg-red-500/5 text-red-100 hover:bg-red-500/10" onClick={resetWorkflow}>
+                        Reset Demo
+                    </Button>
+                    <Button variant="outline" disabled={currentSlideIndex === 0} onClick={() => goToSlide(currentSlideIndex - 1)}>
+                        <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+                    </Button>
+                    <Button variant="outline" disabled={currentSlideIndex >= highestAccessibleSlide} onClick={() => goToSlide(currentSlideIndex + 1)}>
+                        Next <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                <GlassPanel variant="card" className="border-white/10 bg-black/20 p-5">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Why it matters</div>
+                    <div className="mt-3 text-sm leading-7 text-slate-300">The same glassmorphism experience now carries a real end-to-end PQC asset journey instead of splitting secure and verify into disconnected screens.</div>
+                </GlassPanel>
+                <GlassPanel variant="card" className="border-white/10 bg-black/20 p-5">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">What is on-chain</div>
+                    <div className="mt-3 text-sm leading-7 text-slate-300">Dytallix records proof and attestation evidence. The encrypted asset remains off-chain in QuantumVault-managed storage, and the recovered file download is produced only after successful verification and local decryption.</div>
+                </GlassPanel>
+                <GlassPanel variant="card" className="border-white/10 bg-black/20 p-5">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Failure mode</div>
+                    <div className="mt-3 text-sm leading-7 text-slate-300">Missing services, broken proofs, failed verification, or decrypt mismatches fail closed. The component does not fall back to mock states or placeholder audit rows.</div>
+                </GlassPanel>
             </div>
         </div>
     )
