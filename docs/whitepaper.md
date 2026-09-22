@@ -6,7 +6,7 @@ Dytallix is a proposed Layer 1 protocol for authenticated digital ownership, det
 
 The architecture separates consensus, execution, economics, governance, and optional external services. The base protocol does not depend on artificial intelligence, bridge operators, external oracles, or application-specific logic for transaction validity or finality.
 
-Validators use stake-weighted Byzantine fault tolerant consensus. Finality requires a quorum of authenticated validator voting power. Accounts and protocol messages use explicit cryptographic domains, canonical encodings, replay protection, and public-key-to-account binding. State transitions commit atomically to authenticated block and state roots.
+The consensus architecture targets stake-weighted Byzantine fault tolerant finality. Finality requires a quorum of authenticated validator voting power. Accounts and protocol messages use explicit cryptographic domains, canonical encodings, replay protection, and public-key-to-account binding. State transitions commit atomically to authenticated block and state roots.
 
 Dytallix uses two native assets. DGT is the fixed-supply staking and governance asset. DRT is the service-payment and reward asset. DRT issuance is controlled by a bounded deterministic policy. Issuance, fees, rewards, treasury transfers, and burns use one supply-accounting system.
 
@@ -66,6 +66,15 @@ The protocol separates these functions:
 | Optional modules | Smart contracts, bridges, external oracles, and advisory artificial-intelligence services |
 
 Lower protocol layers must not depend on RPC handlers, local wall-clock decisions, uncontrolled external services, or application databases.
+
+### 2.4 Quantum-threat rationale
+
+Dytallix addresses two different quantum threats.
+
+1. **Recorded-traffic decryption:** An adversary can record encrypted traffic now and attempt to decrypt it after a cryptographically relevant quantum computer exists. The peer-session design therefore requires post-quantum key establishment for confidential protocol traffic.
+2. **Active forgery:** A quantum adversary can attack classical public-key signatures after public keys become available. Transactions, validator votes, proposals, and protocol authorizations therefore require approved post-quantum signatures.
+
+These controls protect only the defined protocol boundary. Public ledger data is not confidential. External applications and custody systems need separate controls.
 
 ## 3. Threat model
 
@@ -200,9 +209,15 @@ The algorithm identifier is part of the signed envelope. A verifier must reject 
 
 Historical Dilithium, ML-DSA-87, Falcon, SPHINCS+, or other key material must not be relabeled as ML-DSA-65. Historical decoding requires an explicit compatibility and migration rule.
 
+ML-DSA-65 relies on the Module Learning With Errors and Module Short Integer Solution assumptions. Its standardized artifacts are 1,952-byte public keys, 4,032-byte private keys, and 3,309-byte signatures. These sizes affect block capacity, bandwidth, state storage, and verification budgets.
+
+The signing implementation must follow FIPS 204. It must define whether signing uses the deterministic or hedged mode. It must also define entropy-failure behavior. Rejection sampling, secret-dependent memory access, and error paths require constant-time analysis and independent side-channel review.
+
 ### 6.2 Peer key establishment
 
 **Normative:** Peer key establishment uses ML-KEM-768 under FIPS 203.
+
+ML-KEM-768 relies on the Module Learning With Errors assumption. Its standardized artifacts include a 1,184-byte encapsulation key, a 1,088-byte ciphertext, and a 32-byte shared secret. The network resource model must account for these sizes before it accepts a peer session.
 
 The session protocol must bind:
 
@@ -220,6 +235,8 @@ The record layer must use unique nonces, directional keys, bounded key use, auth
 
 Genesis, protocol-upgrade, and emergency-root actions use a separate SLH-DSA authorization domain. A root signature cannot authorize an ordinary transaction or consensus vote.
 
+The technical design proposes SLH-DSA-SHAKE as a hash-based alternative for low-frequency, long-lived authorization. This choice provides cryptographic diversity from the lattice assumptions used by ML-DSA and ML-KEM. The exact parameter set remains an open decision because signature size, signing cost, custody, and required security level must be evaluated together.
+
 ### 6.4 Hashes and symmetric cryptography
 
 The protocol can retain approved symmetric and hash primitives when their roles and quantum security margins are explicit.
@@ -231,6 +248,8 @@ Candidate primitives include:
 - SHA-256, SHA3-256, and BLAKE3-256 for defined hash and commitment roles.
 - SHA-512 and SHAKE256 where required by standardized algorithms.
 - An operating-system cryptographically secure random-number generator for key generation and fresh randomness.
+
+The technical design proposes BLAKE3-256 for high-throughput content addressing and state-tree hashing. It proposes SHAKE256 where a standardized primitive requires it. A Sparse Merkle Tree is a candidate state commitment because it supports fixed-size keys and compact inclusion or absence proofs. These choices become normative only after the block-hash, state-key, proof, and domain-separation encodings are fixed.
 
 Each use must define domain separation, output length, truncation, collision or preimage requirement, and migration behavior.
 
@@ -253,6 +272,10 @@ An account address commits to:
 - Checksum.
 
 **Open decision:** The final human-readable prefix, binary payload, checksum, and rotation-address behavior require approval.
+
+The technical design proposes Bech32m with the human-readable prefix `dytallix`. The payload commits to a versioned hash of the account authorization record. A versioned payload is required so that an account can distinguish ML-DSA, SLH-DSA, multisignature, and future authorization policies.
+
+Hash-based address indirection can reduce unnecessary public-key exposure and support controlled key rotation. It does not replace signature security. If an address remains stable across key rotation, the state transition must authenticate the old and new authorization policies and define recovery behavior.
 
 ### 7.2 Transaction envelope
 
@@ -299,6 +322,10 @@ Messages in one transaction commit together or revert together. The fee and sequ
 
 Peers authenticate before their consensus messages affect state. Each session binds the peer identity, chain identifier, protocol version, key-establishment transcript, and selected algorithms.
 
+The proposed session pattern combines ephemeral ML-KEM-768 key establishment with ML-DSA-65 transcript authentication. Both peers contribute fresh key-establishment material. Both peers confirm the complete transcript before application data is accepted. The key schedule derives separate send, receive, confirmation, and rekey secrets.
+
+Forward-secrecy claims require more than the use of ML-KEM. The protocol must use fresh ephemeral keys, erase ephemeral secrets, authenticate both identities, prevent transcript substitution, and prove the properties of the complete handshake construction.
+
 ### 8.2 Network controls
 
 The node enforces:
@@ -312,6 +339,8 @@ The node enforces:
 - Seed and discovery separation from consensus authority.
 - Network and autonomous-system diversity targets.
 
+The node performs low-cost parsing, framing, and admission checks before expensive decapsulation or signature verification. A client puzzle can be enabled under load only if the puzzle algorithm, difficulty rule, accessibility effect, bypass protection, and amplification bound are deterministic and tested. Peer scoring is an operational defense. It is not a consensus rule.
+
 ### 8.3 Consensus messages
 
 Each proposal, vote, evidence item, and validator-set update includes its height, round, type, signer, chain identifier, protocol version, and signature domain.
@@ -320,9 +349,13 @@ Each proposal, vote, evidence item, and validator-set update includes its height
 
 ### 9.1 Consensus model
 
-Dytallix uses stake-weighted Byzantine fault tolerant consensus.
+Dytallix requires stake-weighted Byzantine fault tolerant finality. The exact ordering protocol remains an open decision.
 
-At each height, validators progress through numbered rounds. A round has one authorized proposer and authenticated voting phases. A block becomes final only after the required voting-power quorum commits it.
+One candidate is direct round-based BFT. At each height, validators progress through numbered rounds. A round has one authorized proposer and authenticated voting phases. A block becomes final only after the required voting-power quorum commits it.
+
+The technical design also proposes a hybrid named **Nakamoto-Flow**. In this candidate, stake-weighted slot leaders extend a pre-final chain. Latest-message stake weight selects the pre-final branch. A BFT checkpoint with more than two-thirds of active voting power finalizes an epoch boundary.
+
+The protocol must select one model. It must not combine a longest-chain fork-choice rule with direct BFT locking rules without one state-machine specification and a safety proof.
 
 The protocol must define:
 
@@ -361,11 +394,17 @@ Candidate mechanisms include deterministic weighted rotation or a verifiable-ran
 
 Hashing random inputs is not a VRF implementation.
 
+The proposed slot design uses two-second slots and 100-slot epochs. These values are parameters, not approved constants. The source design proposes private stake-weighted sortition from epoch entropy and the slot number. This construction requires a post-quantum verifiable random function with proven uniqueness, pseudorandomness, public verification, bias resistance, and grinding resistance. An ML-DSA signature followed by a hash does not establish these properties.
+
 ### 9.4 Fork handling
 
 The protocol must define pre-finality conflict handling through its round, locking, and proposal-selection rules. Finalized blocks cannot be replaced by an ordinary fork-choice rule.
 
 Recovery from conflicting finality requires an explicit safety procedure. A node must not select a conflicting finalized branch through local configuration.
+
+If the hybrid model is selected, LMD-GHOST is a candidate pre-final fork-choice rule. Its latest-message definition, vote expiry, equivocation treatment, checkpoint interaction, and recovery rules must be specified. It cannot replace the finality certificate.
+
+ML-DSA does not provide BLS-style constant-size signature aggregation. A checkpoint can commit to a signer bitfield, individual signatures, and a Merkle root. Every verifier must still validate the quorum weight and each required signature. A Merkle root reduces commitment size. It does not make the underlying signatures aggregate signatures.
 
 ### 9.5 Validator-set transitions
 
@@ -625,7 +664,24 @@ Every proposal includes:
 
 Each governable parameter needs a type, minimum, maximum, maximum rate of change, approval threshold, and execution delay.
 
-### 14.4 Governance limits
+### 14.4 Cryptographic algorithm registry
+
+The technical design proposes an on-chain registry for approved cryptographic algorithms. Each entry includes an algorithm identifier, parameter set, allowed roles, encoding version, lifecycle state, and activation rule.
+
+The lifecycle states are:
+
+`experimental -> active -> deprecated -> revoked`
+
+- **Experimental:** The algorithm can be evaluated but cannot authorize ordinary protocol state.
+- **Active:** The algorithm can be used only for its approved roles.
+- **Deprecated:** Existing records remain verifiable during a bounded migration period. New use is restricted.
+- **Revoked:** New messages using the algorithm are rejected. Historical verification follows an explicit archival rule.
+
+Governance cannot install arbitrary verification code through a registry entry. Each implementation must already exist in the approved deterministic runtime. Activation selects reviewed code by digest and version.
+
+Emergency revocation requires objective evidence, a bounded authority, an audit record, and a recovery path. A zero-knowledge proof of a cryptographic break can support the evidence process only after the protocol defines the statement, verifier, trusted setup assumptions, and failure behavior.
+
+### 14.5 Governance limits
 
 Governance must not:
 
@@ -636,7 +692,7 @@ Governance must not:
 - Change consensus rules through a local setting.
 - Permit an AI service to override a vote.
 
-### 14.5 Treasury
+### 14.6 Treasury
 
 Treasury balances use protocol module accounts with purpose restrictions. Every spend records the proposal, recipient, asset, amount, purpose, and execution height.
 
@@ -658,6 +714,22 @@ If activated, contract execution must provide:
 - Event and receipt commitments.
 - Reentrancy and capability rules.
 - Upgrade and migration rules.
+
+### 15.1 Dimensional resource accounting
+
+The technical design proposes separate compute and bandwidth charges. For a transaction `tx`, a general fee form is:
+
+`fee(tx) = compute_units(tx) * compute_price + byte_units(tx) * byte_price`
+
+This split accounts for large post-quantum keys, signatures, proofs, and call data without treating all resource costs as one scalar. The protocol must measure both dimensions deterministically. It must also bound price changes, define integer rounding, and charge failed execution under an explicit rule.
+
+An exponential bandwidth-price function is a candidate congestion control. It requires bounded inputs and outputs, monotonicity tests, overflow protection, and stability analysis. A price function does not replace block-size, transaction-size, and per-peer admission limits.
+
+### 15.2 Cryptographic host functions
+
+Versioned host functions can expose ML-DSA and SLH-DSA verification to contracts. Each function must fix the algorithm, parameter set, input encoding, gas cost, maximum input length, and failure result.
+
+The runtime must not expose validator, wallet, or account private keys to contracts. ML-KEM decapsulation is therefore excluded from the generic contract interface unless a separate capability model proves private-key isolation.
 
 Solidity or Ethereum Virtual Machine compatibility is not a base-protocol property. It requires a separate compatibility specification and activation decision.
 
@@ -857,7 +929,19 @@ The following decisions require exact values or mechanisms before their rules ca
 
 An approved decision record must include the selected option, rationale, units, bounds, protocol owner, independent reviewer, activation rule, migration rule, and verification vectors.
 
-## 24. Verification requirements
+## 24. Open research and proof obligations
+
+The technical design identifies five areas that need formal treatment:
+
+1. **Post-quantum proposer sortition:** Define or adopt a verifiable random function with a stated security model and test vectors.
+2. **ML-DSA side channels:** Measure rejection-sampling timing, memory access, power leakage, compiler effects, and error behavior. Padding and iteration bounds do not by themselves prove constant-time execution.
+3. **Checkpoint signature compression:** Define the signer commitment, individual-signature proof format, batch-verification rules, and worst-case verification cost. Do not describe a Merkle commitment as signature aggregation.
+4. **Authenticated ML-KEM transport:** Specify and analyze the complete handshake, transcript, key schedule, identity binding, forward secrecy, downgrade resistance, and secret erasure.
+5. **Epoch randomness:** Define entropy inputs, contribution rules, bias limits, withholding behavior, recovery, and domain separation. Block hashes alone can permit proposer influence.
+
+These items are architecture obligations. They are not deferred product features.
+
+## 25. Verification requirements
 
 Protocol verification includes:
 
