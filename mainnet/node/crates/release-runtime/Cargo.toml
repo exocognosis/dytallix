@@ -7,6 +7,9 @@ publish = false
 [features]
 default = []
 qualification-fixtures = []
+# Development and test builds only: skips owner admission when
+# DYTALLIX_DEV_UNGUARDED=1. Release builds never enable it.
+dev-unguarded = []
 
 [dependencies]
 anyhow = "=1.0.102"

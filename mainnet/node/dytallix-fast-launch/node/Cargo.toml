@@ -57,6 +57,10 @@ pqc-consensus = ["pqc-fips204", "dytallix-storage/pqc-consensus", "dytallix-runt
 pqc-fips204 = ["fips204", "dytallix-runtime-crypto/pqc-fips204"]
 # Explicit local runner API for returned helper observations. No authority bypass.
 helper-qualification = []
+# Development and test builds only: skips owner admission when
+# DYTALLIX_DEV_UNGUARDED=1, for the local multi-validator harness.
+# Release builds never enable it.
+dev-unguarded = ["dytallix-release-runtime/dev-unguarded"]
 
 [[bin]]
 name = "helper-execution-qualification"

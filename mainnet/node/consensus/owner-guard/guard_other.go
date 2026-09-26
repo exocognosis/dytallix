@@ -1,4 +1,4 @@
-//go:build !linux
+//go:build !linux && !dytallix_dev_unguarded
 
 package ownerguard
 

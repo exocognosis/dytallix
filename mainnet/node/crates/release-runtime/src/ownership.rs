@@ -383,7 +383,9 @@ mod linux {
     }
 }
 #[cfg(target_os = "linux")]
-pub use linux::{admit, Admission, Bootstrap};
+pub use linux::Bootstrap;
+#[cfg(all(target_os = "linux", not(feature = "dev-unguarded")))]
+pub use linux::{admit, Admission};
 
 #[cfg(not(target_os = "linux"))]
 mod unsupported {
@@ -405,7 +407,30 @@ mod unsupported {
     pub fn admit(_: Role) -> Result<Admission> { bail!("Ownership requires Linux") }
 }
 #[cfg(not(target_os = "linux"))]
-pub use unsupported::{admit, Admission, Bootstrap};
+pub use unsupported::Bootstrap;
+#[cfg(all(not(target_os = "linux"), not(feature = "dev-unguarded")))]
+pub use unsupported::{admit, Admission};
+
+/// Development admission without an owner. Compiled only with the
+/// `dev-unguarded` feature, for local multi-validator testing, and still
+/// requires DYTALLIX_DEV_UNGUARDED=1. Release builds never enable it.
+#[cfg(feature = "dev-unguarded")]
+mod dev_unguarded {
+    use super::*;
+    pub struct Admission { pub context_sha512: [u8;64], pub deadline_ns: u64, pub owner_pid: u32 }
+    impl Admission {
+        pub fn check(&self) -> Result<()> { Ok(()) }
+        pub fn verify_context(&self, _: &[u8;64]) -> Result<()> { Ok(()) }
+    }
+    pub fn admit(role: Role) -> Result<Admission> {
+        ensure!(std::env::var("DYTALLIX_DEV_UNGUARDED").as_deref() == Ok("1"),
+            "Unguarded development build requires DYTALLIX_DEV_UNGUARDED=1");
+        eprintln!("WARNING: owner startup admission disabled for role {} (development build)", role as u32);
+        Ok(Admission { context_sha512: [0;64], deadline_ns: 0, owner_pid: std::process::id() })
+    }
+}
+#[cfg(feature = "dev-unguarded")]
+pub use dev_unguarded::{admit, Admission};
 
 #[cfg(test)]
 mod tests {
