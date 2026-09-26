@@ -235,9 +235,9 @@ Block Size Limit: 10 MB
 │   │   ├── cosmos_sdk_integration.md   # Integration documentation
 │   │   └── node_config.toml            # Node configuration template
 │   ├── pqc_keys/
-│   │   ├── validator_keys.txt          # Human-readable validator keys
+│   │   ├── validator_keys.txt          # Human-readable validator keys incl. private keys (local only, gitignored)
 │   │   ├── public_keys.json            # JSON format public keys
-│   │   └── private_keys.json           # JSON format private keys (testnet only)
+│   │   └── private_keys.json           # JSON format private keys (local only, gitignored)
 │   ├── logs/
 │   │   ├── genesis_block.log           # Block production log
 │   │   ├── chain_state.json            # Current chain state

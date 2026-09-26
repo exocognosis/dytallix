@@ -236,8 +236,8 @@ EOF
     echo "$public_keys_json" > "$public_keys_file"
     echo "$private_keys_json" > "$private_keys_file"
     
-    # Set appropriate permissions for private keys
-    chmod 600 "$private_keys_file"
+    # Set appropriate permissions for private keys (both files contain them)
+    chmod 600 "$private_keys_file" "$keys_file"
     
     log_success "PQC validator keys generated successfully"
     log_info "Keys written to: $keys_file"
