@@ -121,6 +121,14 @@ keystore/*.key
 # Allow keystore source code directories
 !**/src/wallet/keystore/
 
+# PQC key material - never commit. init_testnet.sh writes plaintext validator
+# private keys to testnet/init/pqc_keys/, and the pqc keygen / PQCManager
+# write secret keys into pqc_keys.json. Previously committed copies are
+# compromised and must never be reused.
+**/private_keys.json
+**/validator_keys.txt
+**/pqc_keys*.json
+
 # AI model files (too large for git)
 *.h5
 *.pb
