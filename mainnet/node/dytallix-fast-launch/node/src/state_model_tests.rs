@@ -35,25 +35,13 @@ fn full_scan_state_digest(storage: &Storage, writes: &Writes, governance_enabled
 /// so its chains end at height 18.
 const EPOCH_BLOCKS: u64 = 2;
 
-/// Epoch boundaries require the completed parent epoch's observation first.
+/// Epoch boundaries carry the observation derived from committed blocks first.
 fn commit_next(app: &mut ConsensusApplication, height: u64) {
-    let mut txs = Vec::new();
-    if height > 1 && (height - 1) % EPOCH_BLOCKS == 0 {
-        let epoch = (height - 1) / EPOCH_BLOCKS - 1;
-        txs.push(
-            serde_json::to_vec(&WireTransaction::EpochObservation {
-                observation: EpochObservation {
-                    epoch,
-                    utilization_ppm: 500000,
-                    volatility_ppm: 0,
-                    first_height: epoch * EPOCH_BLOCKS + 1,
-                    last_height: (epoch + 1) * EPOCH_BLOCKS,
-                    parent_hash: block(height - 1, vec![]).hash,
-                },
-            })
-            .unwrap(),
-        );
-    }
+    let parent = block(height - 1, vec![]).hash;
+    let txs = derived_observation_wire(&app.storage, &app.config, EPOCH_BLOCKS, height, &parent)
+        .unwrap()
+        .into_iter()
+        .collect();
     app.finalize_block(block(height, txs)).unwrap();
     app.commit().unwrap();
 }
@@ -153,4 +141,17 @@ fn block_inputs_are_not_capped_at_the_former_history_bound() {
         input_limits(&inputs.config, &block(height, vec![])).unwrap();
     }
     assert!(input_limits(&inputs.config, &block(0, vec![])).is_err());
+}
+
+#[test]
+fn supply_validation_reads_only_the_current_emission_event() {
+    let inputs = Inputs::new();
+    let dir = tempfile::tempdir().unwrap();
+    let app = committed_chain(&inputs, &dir.path().join("db"), 8);
+    for height in 1..8u64 {
+        let key = format!("emission:event:{height}");
+        assert!(app.storage.db.get(&key).unwrap().is_some());
+        app.storage.db.delete(key).unwrap();
+    }
+    crate::supply::validate_native(&app.storage, &Writes::new()).unwrap();
 }

@@ -1947,6 +1947,68 @@ fn combined_transaction(
         }
     }
 }
+/// Epoch observation contract v1. Utilization is the block space used by the
+/// completed epoch's transactions, excluding its own observation, in parts per
+/// million of epoch capacity (epoch_blocks * max_block_bytes), capped at one
+/// million. Volatility is zero until an authenticated source exists. Every
+/// validator derives the same observation from committed blocks; no transaction
+/// submitter or proposer supplies its values.
+fn derived_observation(
+    storage: &Storage,
+    config: &ConsensusConfig,
+    epoch_blocks: u64,
+    height: u64,
+    parent_hash: &str,
+) -> Result<Option<EpochObservation>> {
+    ensure!(epoch_blocks > 0, "Epoch length must be positive");
+    if height <= 1 || (height - 1) % epoch_blocks != 0 {
+        return Ok(None);
+    }
+    let epoch = (height - 1) / epoch_blocks - 1;
+    let first_height = epoch
+        .checked_mul(epoch_blocks)
+        .and_then(|h| h.checked_add(1))
+        .context("Observation first height exceeds u64")?;
+    let last_height = height - 1;
+    let history = HistoryRead::with_budget(storage, 0);
+    let mut used = 0u128;
+    for h in first_height..=last_height {
+        for raw in &history.block(h)?.input.txs {
+            if !matches!(wire(config, raw), Ok(WireTransaction::EpochObservation { .. })) {
+                used = used
+                    .checked_add(u128::try_from(raw.len())?)
+                    .context("Epoch usage overflow")?;
+            }
+        }
+    }
+    let capacity = u128::from(epoch_blocks)
+        .checked_mul(u128::try_from(config.max_block_bytes)?)
+        .context("Epoch capacity overflow")?;
+    ensure!(capacity > 0, "Epoch capacity must be positive");
+    let utilization = (used.checked_mul(1_000_000).context("Epoch usage overflow")? / capacity)
+        .min(1_000_000);
+    Ok(Some(EpochObservation {
+        epoch,
+        utilization_ppm: u64::try_from(utilization)?,
+        volatility_ppm: 0,
+        first_height,
+        last_height,
+        parent_hash: parent_hash.to_owned(),
+    }))
+}
+fn derived_observation_wire(
+    storage: &Storage,
+    config: &ConsensusConfig,
+    epoch_blocks: u64,
+    height: u64,
+    parent_hash: &str,
+) -> Result<Option<Vec<u8>>> {
+    derived_observation(storage, config, epoch_blocks, height, parent_hash)?
+        .map(|observation| {
+            Ok(serde_json::to_vec(&WireTransaction::EpochObservation { observation })?)
+        })
+        .transpose()
+}
 fn input_limits(config: &ConsensusConfig, input: &FinalizedBlockInput) -> Result<()> {
     ensure!(input.height >= 1, "Block height must be positive");
     ensure!(
@@ -2914,26 +2976,14 @@ impl ConsensusApplication {
         let limit = usize::try_from(max_bytes)
             .unwrap_or(usize::MAX)
             .min(self.config.max_block_bytes);
-        let mut observation = None;
-        for raw in txs.iter().take(self.config.max_txs.saturating_mul(4)) {
-            if let Ok(WireTransaction::EpochObservation { observation: obs }) =
-                wire(&self.config, raw)
-            {
-                if boundary
-                    && observation.is_none()
-                    && crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &timing,
-                        height,
-                        &parent,
-                        Some(&obs),
-                    )
-                    .is_ok()
-                {
-                    observation = Some(raw.clone());
-                }
-            }
-        }
+        // Observations are derived from committed blocks, never taken from txs.
+        let observation = derived_observation_wire(
+            &self.storage,
+            &self.config,
+            timing.config.epoch_blocks,
+            height,
+            &parent,
+        )?;
         let observation_size = observation.as_ref().map_or(0, Vec::len);
         let mut selected_controls = Vec::new();
         for raw in txs.iter().take(self.config.max_txs.saturating_mul(4)) {
@@ -3469,6 +3519,7 @@ impl ConsensusApplication {
                     .last_height
                     .checked_add(1)
                     .context("Height exhausted")?;
+                state.prune_receipts_for(height);
                 let mut recovery = book.begin_block(height)?;
                 let mut shared = shared_meter(&state.config, &recovery)?;
                 let mut staged = committed_ordinary_settlement(self.storage.clone())?;
@@ -3584,21 +3635,8 @@ impl ConsensusApplication {
                         "Already committed transaction"
                     );
                 }
-                WireTransaction::EpochObservation { observation } => {
-                    verify_recovery(&self.storage)?;
-                    let state = timing(&self.storage)?;
-                    let parent = read_head(&self.storage)?
-                        .map_or_else(|| "genesis".into(), |h| h.anchor.engine_hash);
-                    crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &state,
-                        state
-                            .last_height
-                            .checked_add(1)
-                            .context("Height exhausted")?,
-                        &parent,
-                        Some(&observation),
-                    )?;
+                WireTransaction::EpochObservation { .. } => {
+                    anyhow::bail!("Epoch observations are derived by the proposer, not submitted");
                 }
             }
             Ok(None)
@@ -3804,26 +3842,19 @@ impl ConsensusApplication {
         let limit = usize::try_from(max_bytes)
             .unwrap_or(usize::MAX)
             .min(self.config.max_block_bytes);
-        let mut observation = None;
+        // Observations are derived from committed blocks, never taken from txs.
+        let observation = derived_observation_wire(
+            &self.storage,
+            &self.config,
+            state.config.epoch_blocks,
+            height,
+            &parent,
+        )?;
         let mut signed = Vec::new();
         let mut seen = BTreeSet::new();
         for raw in txs.into_iter().take(self.config.max_txs.saturating_mul(4)) {
             match wire(&self.config, &raw) {
-                Ok(WireTransaction::EpochObservation { observation: obs })
-                    if boundary && observation.is_none() =>
-                {
-                    if crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &state,
-                        height,
-                        &parent,
-                        Some(&obs),
-                    )
-                    .is_ok()
-                    {
-                        observation = Some(raw);
-                    }
-                }
+                Ok(WireTransaction::EpochObservation { .. }) => {}
                 Ok(WireTransaction::Recovery { envelope_base64 }) => {
                     if let Ok(bytes) = recovery_bytes(&envelope_base64) {
                         if let Ok(envelope) = sponsor_wire::decode(&bytes) {
@@ -4024,25 +4055,26 @@ impl ConsensusApplication {
             .unwrap_or(usize::MAX)
             .min(self.config.max_block_bytes);
         let mut candidates = Vec::new();
-        let mut observation = None;
+        // Observations are derived from committed blocks, never taken from txs.
+        let observation = derived_observation(
+            &self.storage,
+            &self.config,
+            timing.config.epoch_blocks,
+            height,
+            &parent,
+        )?
+        .map(|obs| -> Result<_> {
+            let raw = serde_json::to_vec(&WireTransaction::EpochObservation {
+                observation: obs.clone(),
+            })?;
+            Ok((raw, obs))
+        })
+        .transpose()?;
         for raw in txs.into_iter().take(self.config.max_txs.saturating_mul(4)) {
-            if let Ok(WireTransaction::EpochObservation { observation: obs }) =
-                wire(&self.config, &raw)
-            {
-                if boundary
-                    && observation.is_none()
-                    && crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &timing,
-                        height,
-                        &parent,
-                        Some(&obs),
-                    )
-                    .is_ok()
-                {
-                    observation = Some((raw, obs));
-                }
-            } else {
+            if !matches!(
+                wire(&self.config, &raw),
+                Ok(WireTransaction::EpochObservation { .. })
+            ) {
                 candidates.push(raw);
             }
         }
@@ -4080,6 +4112,7 @@ impl ConsensusApplication {
         let book = recovery_book(&self.storage, &self.config)?.context("Recovery missing")?;
         let mut state =
             load_ordinary(&self.storage, &self.config, Some(&book))?.context("Ordinary missing")?;
+        state.prune_receipts_for(height);
         let mut recovery = book.begin_block(height)?;
         let mut shared = shared_meter(&state.config, &recovery)?;
         let liquidity = ordinary_runtime::eligible_liquidity(&mut staged, &recovery.book)?;
@@ -4243,6 +4276,17 @@ impl ConsensusApplication {
             boundary == observation.is_some(),
             "Completed parent epoch observation required at boundary only"
         );
+        ensure!(
+            observation
+                == derived_observation(
+                    &self.storage,
+                    &self.config,
+                    timing.config.epoch_blocks,
+                    input.height,
+                    &parent,
+                )?,
+            "Epoch observation differs from committed block usage"
+        );
         let emergency_plan = self.emergency_plan(input.height, &input.txs)?;
         let upgrade_plan = self.upgrade_plan(input.height, &input.txs, emergency_plan.as_ref())?;
         let handover_plan = self.handover_plan(
@@ -4279,6 +4323,9 @@ impl ConsensusApplication {
         }
         let committed_recovery = recovery_book(&self.storage, &self.config)?;
         let mut ordinary = load_ordinary(&self.storage, &self.config, committed_recovery.as_ref())?;
+        if let Some(state) = ordinary.as_mut() {
+            state.prune_receipts_for(input.height);
+        }
         let mut recovery = committed_recovery
             .map(|book| book.begin_block(input.height))
             .transpose()?;
@@ -5142,6 +5189,17 @@ fn verify_history(history: &HistoryRead<'_>, from: Option<u64>) -> Result<Emerge
                             && record.result.tx_results[index] == TxResult::observation(),
                         "Committed observation differs"
                     );
+                    ensure!(
+                        Some(observation)
+                            == derived_observation(
+                                storage,
+                                &config,
+                                state.config.epoch_blocks,
+                                h,
+                                &anchor.parent_engine_hash,
+                            )?,
+                        "Committed observation differs from committed block usage"
+                    );
                     observations += 1;
                 }
             }
@@ -5291,6 +5349,10 @@ fn verify_history(history: &HistoryRead<'_>, from: Option<u64>) -> Result<Emerge
                     "Receipt index differs"
                 );
             }
+            // Ordinary receipts older than the retention window were pruned.
+            let ordinary_receipts_pruned = ordinary
+                .as_ref()
+                .is_some_and(|state| h.saturating_add(state.receipt_window()) <= height);
             for (index, result) in record.result.tx_results.iter().enumerate() {
                 ensure!(
                     result.gas_used >= 0
@@ -5301,6 +5363,11 @@ fn verify_history(history: &HistoryRead<'_>, from: Option<u64>) -> Result<Emerge
                 if result.code == 0 || result.code == 3 {
                     ensure!(
                         indices.contains(&index)
+                            || (ordinary_receipts_pruned
+                                && matches!(
+                                    wire(&config, &record.input.txs[index]),
+                                    Ok(WireTransaction::OrdinaryV2 { .. })
+                                ))
                             || (boundary && index == 0 && result == &TxResult::observation())
                             || (result == &emergency_result()
                                 && matches!(
