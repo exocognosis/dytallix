@@ -10,7 +10,7 @@ use crate::ordinary_reservations::{ReservationId, ReservationLedger, Reservation
 use crate::ordinary_state::{self, OrdinaryConfig, OrdinaryState, STATE_KEY as ORDINARY_STATE_KEY};
 use crate::recovery_fees::{RecoveryBook, RecoveryResult, STATE_KEY as RECOVERY_STATE_KEY};
 use crate::{
-    block_lifecycle::{self, Writes},
+    block_lifecycle::{self, Deletes, Writes},
     execution::stage_transaction,
     gas::GasSchedule,
     runtime::{
@@ -45,7 +45,7 @@ use dytallix_protocol_types::recovery_sponsor as sponsor_wire;
 use dytallix_protocol_types::ordinary_v3::SignedOrdinary as SignedOrdinaryV3;
 use dytallix_protocol_types::{ordinary as ordinary_wire, ordinary_fees as ordinary_fee_wire};
 use dytallix_storage::adaptive::PreparedJournalUpdate;
-use rocksdb::{IteratorMode, WriteBatch, WriteOptions};
+use rocksdb::{Direction, IteratorMode, WriteBatch, WriteOptions};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -59,8 +59,6 @@ const HEAD_KEY: &str = "consensus:v1:head";
 const BLOCK_PREFIX: &str = "consensus:v1:block:";
 const GENESIS_SOURCE_KEY: &str = "consensus:v1:genesis_source";
 const GENESIS_APP_HASH_KEY: &str = "consensus:v1:genesis_app_hash";
-// This local qualification profile stops before an unbounded history scan.
-const MAX_HISTORY: u64 = 100_000;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -588,6 +586,7 @@ struct Prepared {
     expected_info: Info,
     expected_state_digest: String,
     writes: Writes,
+    deletes: Deletes,
     journal: Option<PreparedJournalUpdate>,
     record: BlockRecord,
 }
@@ -655,6 +654,7 @@ fn check_stored_startup(
             "Stored application genesis source differs");
         crate::root_genesis::check_receipt(
             storage.db.get(crate::root_genesis::STATE_KEY)?.as_deref(), root_genesis)?;
+        let sequence = storage.db.latest_sequence_number();
         let history = HistoryRead::new(storage);
         let trace = verify_recovery_with(&history)?;
         if let (Some(policy), Some(verifier)) = (&config.emergency, emergency_verifier) {
@@ -664,6 +664,7 @@ fn check_stored_startup(
             let outcomes = upgrade_history(&history, config, &trace, Some(verifier))?;
             handover_history(&history, config, &trace, &outcomes, Some(verifier))?;
         }
+        storage.mark_verified(sequence)?;
         Ok(true)
     } else {
         // Read errors must not be mistaken for an empty database.
@@ -791,6 +792,10 @@ pub enum QueryRequest<'a> {
 }
 #[cfg(test)]
 thread_local! { static RECOVERY_PASSES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
+#[cfg(test)]
+thread_local! { static FULL_HISTORY_PASSES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
+#[cfg(test)]
+thread_local! { static STATE_DIGEST_READS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
 pub struct ConsensusApplication {
     storage: Arc<Storage>,
     config: ConsensusConfig,
@@ -836,32 +841,41 @@ fn read_head(storage: &Storage) -> Result<Option<Head>> {
 fn record_key(height: u64) -> String {
     format!("{BLOCK_PREFIX}{height:016x}")
 }
+/// Key prefixes whose entries form the consensus state commitment.
+const STATE_PREFIXES: [&[u8]; 17] = [
+    b"acct:",
+    b"dms:config:",
+    b"emission:",
+    b"staking:",
+    b"rewards:",
+    b"issuance:",
+    b"adaptive:",
+    b"lifecycle:",
+    b"penalty:",
+    b"recovery:",
+    b"supply:",
+    b"genesis:",
+    b"root:authorization:",
+    b"ordinary:v1:",
+    b"consensus:emergency:",
+    b"consensus:upgrade:",
+    b"consensus:release-handover:",
+];
+/// Individual keys in the consensus state commitment, outside STATE_PREFIXES.
+fn state_keys(governance_enabled: bool) -> Vec<&'static [u8]> {
+    let mut keys = vec![
+        MODE_KEY.as_bytes(),
+        b"meta:chain_id".as_slice(),
+        b"execution:v1:withheld_udrt".as_slice(),
+    ];
+    if governance_enabled {
+        keys.push(GOVERNANCE_STATE_KEY.as_bytes());
+    }
+    keys
+}
 fn selected(key: &[u8], governance_enabled: bool) -> bool {
-    [
-        b"acct:".as_slice(),
-        b"dms:config:",
-        b"emission:",
-        b"staking:",
-        b"rewards:",
-        b"issuance:",
-        b"adaptive:",
-        b"lifecycle:",
-        b"penalty:",
-        b"recovery:",
-        b"supply:",
-        b"genesis:",
-        b"root:authorization:",
-        b"ordinary:v1:",
-        b"consensus:emergency:",
-        b"consensus:upgrade:",
-        b"consensus:release-handover:",
-    ]
-    .iter()
-    .any(|prefix| key.starts_with(prefix))
-        || (governance_enabled && key == GOVERNANCE_STATE_KEY.as_bytes())
-        || key == MODE_KEY.as_bytes()
-        || key == b"meta:chain_id"
-        || key == b"execution:v1:withheld_udrt"
+    STATE_PREFIXES.iter().any(|prefix| key.starts_with(prefix))
+        || state_keys(governance_enabled).contains(&key)
 }
 fn governance_key_permitted(key: &[u8], governance_enabled: bool) -> bool {
     if key.starts_with(b"governance:") {
@@ -870,16 +884,53 @@ fn governance_key_permitted(key: &[u8], governance_enabled: bool) -> bool {
     !key.starts_with(b"gov:")
 }
 fn state_digest(storage: &Storage, writes: &Writes, governance_enabled: bool) -> Result<String> {
+    state_digest_with(storage, writes, &Deletes::new(), governance_enabled)
+}
+/// Reads only the committed state keys and the governance prefixes, so the cost
+/// does not grow with block records or transaction indexes. `deletes` removes
+/// stored keys before `writes` apply; the two sets must be disjoint.
+fn state_digest_with(
+    storage: &Storage,
+    writes: &Writes,
+    deletes: &Deletes,
+    governance_enabled: bool,
+) -> Result<String> {
+    ensure!(
+        deletes.iter().all(|key| !writes.contains_key(key)),
+        "A block cannot write and delete the same key"
+    );
+    // governance_key_permitted rejects keys only under these two prefixes.
+    for prefix in [b"gov:".as_slice(), b"governance:"] {
+        for item in storage.db.iterator(IteratorMode::From(prefix, Direction::Forward)) {
+            let (k, _) = item?;
+            if !k.starts_with(prefix) {
+                break;
+            }
+            ensure!(
+                governance_key_permitted(&k, governance_enabled),
+                "Governance state requires a configured consensus profile"
+            );
+        }
+    }
     let mut values = BTreeMap::new();
-    for item in storage.db.iterator(IteratorMode::Start) {
-        let (k, v) = item?;
-        ensure!(
-            governance_key_permitted(&k, governance_enabled),
-            "Governance state requires a configured consensus profile"
-        );
-        if selected(&k, governance_enabled) {
+    for prefix in STATE_PREFIXES {
+        for item in storage.db.iterator(IteratorMode::From(prefix, Direction::Forward)) {
+            let (k, v) = item?;
+            if !k.starts_with(prefix) {
+                break;
+            }
+            #[cfg(test)]
+            STATE_DIGEST_READS.with(|n| n.set(n.get() + 1));
             values.insert(k.to_vec(), v.to_vec());
         }
+    }
+    for key in state_keys(governance_enabled) {
+        if let Some(v) = storage.db.get(key)? {
+            values.insert(key.to_vec(), v);
+        }
+    }
+    for key in deletes {
+        values.remove(key);
     }
     for (k, v) in writes {
         ensure!(
@@ -1913,11 +1964,70 @@ fn combined_transaction(
         }
     }
 }
+/// Epoch observation contract v1. Utilization is the block space used by the
+/// completed epoch's transactions, excluding its own observation, in parts per
+/// million of epoch capacity (epoch_blocks * max_block_bytes), capped at one
+/// million. Volatility is zero until an authenticated source exists. Every
+/// validator derives the same observation from committed blocks; no transaction
+/// submitter or proposer supplies its values.
+fn derived_observation(
+    storage: &Storage,
+    config: &ConsensusConfig,
+    epoch_blocks: u64,
+    height: u64,
+    parent_hash: &str,
+) -> Result<Option<EpochObservation>> {
+    ensure!(epoch_blocks > 0, "Epoch length must be positive");
+    if height <= 1 || (height - 1) % epoch_blocks != 0 {
+        return Ok(None);
+    }
+    let epoch = (height - 1) / epoch_blocks - 1;
+    let first_height = epoch
+        .checked_mul(epoch_blocks)
+        .and_then(|h| h.checked_add(1))
+        .context("Observation first height exceeds u64")?;
+    let last_height = height - 1;
+    let history = HistoryRead::with_budget(storage, 0);
+    let mut used = 0u128;
+    for h in first_height..=last_height {
+        for raw in &history.block(h)?.input.txs {
+            if !matches!(wire(config, raw), Ok(WireTransaction::EpochObservation { .. })) {
+                used = used
+                    .checked_add(u128::try_from(raw.len())?)
+                    .context("Epoch usage overflow")?;
+            }
+        }
+    }
+    let capacity = u128::from(epoch_blocks)
+        .checked_mul(u128::try_from(config.max_block_bytes)?)
+        .context("Epoch capacity overflow")?;
+    ensure!(capacity > 0, "Epoch capacity must be positive");
+    let utilization = (used.checked_mul(1_000_000).context("Epoch usage overflow")? / capacity)
+        .min(1_000_000);
+    Ok(Some(EpochObservation {
+        epoch,
+        utilization_ppm: u64::try_from(utilization)?,
+        volatility_ppm: 0,
+        first_height,
+        last_height,
+        parent_hash: parent_hash.to_owned(),
+    }))
+}
+fn derived_observation_wire(
+    storage: &Storage,
+    config: &ConsensusConfig,
+    epoch_blocks: u64,
+    height: u64,
+    parent_hash: &str,
+) -> Result<Option<Vec<u8>>> {
+    derived_observation(storage, config, epoch_blocks, height, parent_hash)?
+        .map(|observation| {
+            Ok(serde_json::to_vec(&WireTransaction::EpochObservation { observation })?)
+        })
+        .transpose()
+}
 fn input_limits(config: &ConsensusConfig, input: &FinalizedBlockInput) -> Result<()> {
-    ensure!(
-        (1..=MAX_HISTORY).contains(&input.height),
-        "Height exceeds local qualification bound"
-    );
+    ensure!(input.height >= 1, "Block height must be positive");
     ensure!(
         input.time_seconds >= 0 && (0..1_000_000_000).contains(&input.time_nanos),
         "Invalid engine timestamp"
@@ -2110,11 +2220,35 @@ fn finalized_anchor(
 /// Bind every immutable control receipt to its actual block, input and result.
 /// This structural scan does not establish signature validity. Startup performs
 /// cryptographic replay separately with the configured helper.
-fn emergency_history(
+/// Emergency records read from stored receipts in sequence order, without
+/// walking blocks. The complete history check proves they equal the records
+/// rebuilt from committed blocks, so they are valid after verify_recovery.
+fn committed_emergency_records(
     storage: &Storage,
     config: &ConsensusConfig,
 ) -> Result<Vec<(emergency::Receipt, emergency::BlockContext)>> {
-    Ok(emergency_history_with(&HistoryRead::new(storage), config)?.records)
+    let Some(policy) = &config.emergency else {
+        return Ok(Vec::new());
+    };
+    let prefix = emergency::RECEIPT_PREFIX.as_bytes();
+    let mut records = Vec::new();
+    for item in storage
+        .db
+        .iterator(IteratorMode::From(prefix, Direction::Forward))
+    {
+        let (key, bytes) = item?;
+        if !key.starts_with(prefix) {
+            break;
+        }
+        let receipt = emergency::decode_receipt(policy, &bytes)?;
+        ensure!(
+            key.as_ref() == emergency::receipt_key(receipt.control.payload.sequence).as_bytes(),
+            "Emergency receipt key differs from sequence"
+        );
+        let context = receipt.context.clone();
+        records.push((receipt, context));
+    }
+    Ok(records)
 }
 fn emergency_history_with(
     history: &HistoryRead<'_>,
@@ -2147,10 +2281,6 @@ fn emergency_history_with(
         "Emergency state missing"
     );
     let height = block_lifecycle::height(storage, "meta:height")?;
-    ensure!(
-        height <= MAX_HISTORY,
-        "Emergency history exceeds consensus history bound"
-    );
     let mut receipts = Vec::new();
     let mut frozen = false;
     for h in 1..=height {
@@ -2382,7 +2512,6 @@ fn handover_history(
     let mut schema = upgrade::State::new(up)?.active_schema();
     let mut expected = BTreeMap::new();
     let height = block_lifecycle::height(storage, "meta:height")?;
-    ensure!(height <= MAX_HISTORY, "Handover history bound");
     for h in 1..=height {
         let record = history.block(h)?;
         let prior_end = emergency_records.partition_point(|(_, c)| c.height < h);
@@ -2538,7 +2667,6 @@ fn upgrade_history(
     let mut state = upgrade::State::new(policy)?;
     let mut expected = BTreeMap::new();
     let height = block_lifecycle::height(storage, "meta:height")?;
-    ensure!(height <= MAX_HISTORY, "Upgrade history bound");
     for h in 1..=height {
         let record = history.block(h)?;
         let prior_end = emergency_records.partition_point(|(_, context)| context.height < h);
@@ -2825,7 +2953,7 @@ impl ConsensusApplication {
             }));
         }
         let context = upgrade_context(height, info.app_hash, &emergency_state, false)?;
-        let records = emergency_history(&self.storage, &self.config)?;
+        let records = committed_emergency_records(&self.storage, &self.config)?;
         let history = upgrade::VerifiedEmergencyHistory::from_records(
             self.config
                 .emergency
@@ -2865,26 +2993,14 @@ impl ConsensusApplication {
         let limit = usize::try_from(max_bytes)
             .unwrap_or(usize::MAX)
             .min(self.config.max_block_bytes);
-        let mut observation = None;
-        for raw in txs.iter().take(self.config.max_txs.saturating_mul(4)) {
-            if let Ok(WireTransaction::EpochObservation { observation: obs }) =
-                wire(&self.config, raw)
-            {
-                if boundary
-                    && observation.is_none()
-                    && crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &timing,
-                        height,
-                        &parent,
-                        Some(&obs),
-                    )
-                    .is_ok()
-                {
-                    observation = Some(raw.clone());
-                }
-            }
-        }
+        // Observations are derived from committed blocks, never taken from txs.
+        let observation = derived_observation_wire(
+            &self.storage,
+            &self.config,
+            timing.config.epoch_blocks,
+            height,
+            &parent,
+        )?;
         let observation_size = observation.as_ref().map_or(0, Vec::len);
         let mut selected_controls = Vec::new();
         for raw in txs.iter().take(self.config.max_txs.saturating_mul(4)) {
@@ -3420,6 +3536,7 @@ impl ConsensusApplication {
                     .last_height
                     .checked_add(1)
                     .context("Height exhausted")?;
+                state.prune_receipts_for(height);
                 let mut recovery = book.begin_block(height)?;
                 let mut shared = shared_meter(&state.config, &recovery)?;
                 let mut staged = committed_ordinary_settlement(self.storage.clone())?;
@@ -3535,21 +3652,8 @@ impl ConsensusApplication {
                         "Already committed transaction"
                     );
                 }
-                WireTransaction::EpochObservation { observation } => {
-                    verify_recovery(&self.storage)?;
-                    let state = timing(&self.storage)?;
-                    let parent = read_head(&self.storage)?
-                        .map_or_else(|| "genesis".into(), |h| h.anchor.engine_hash);
-                    crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &state,
-                        state
-                            .last_height
-                            .checked_add(1)
-                            .context("Height exhausted")?,
-                        &parent,
-                        Some(&observation),
-                    )?;
+                WireTransaction::EpochObservation { .. } => {
+                    anyhow::bail!("Epoch observations are derived by the proposer, not submitted");
                 }
             }
             Ok(None)
@@ -3755,26 +3859,19 @@ impl ConsensusApplication {
         let limit = usize::try_from(max_bytes)
             .unwrap_or(usize::MAX)
             .min(self.config.max_block_bytes);
-        let mut observation = None;
+        // Observations are derived from committed blocks, never taken from txs.
+        let observation = derived_observation_wire(
+            &self.storage,
+            &self.config,
+            state.config.epoch_blocks,
+            height,
+            &parent,
+        )?;
         let mut signed = Vec::new();
         let mut seen = BTreeSet::new();
         for raw in txs.into_iter().take(self.config.max_txs.saturating_mul(4)) {
             match wire(&self.config, &raw) {
-                Ok(WireTransaction::EpochObservation { observation: obs })
-                    if boundary && observation.is_none() =>
-                {
-                    if crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &state,
-                        height,
-                        &parent,
-                        Some(&obs),
-                    )
-                    .is_ok()
-                    {
-                        observation = Some(raw);
-                    }
-                }
+                Ok(WireTransaction::EpochObservation { .. }) => {}
                 Ok(WireTransaction::Recovery { envelope_base64 }) => {
                     if let Ok(bytes) = recovery_bytes(&envelope_base64) {
                         if let Ok(envelope) = sponsor_wire::decode(&bytes) {
@@ -3975,25 +4072,26 @@ impl ConsensusApplication {
             .unwrap_or(usize::MAX)
             .min(self.config.max_block_bytes);
         let mut candidates = Vec::new();
-        let mut observation = None;
+        // Observations are derived from committed blocks, never taken from txs.
+        let observation = derived_observation(
+            &self.storage,
+            &self.config,
+            timing.config.epoch_blocks,
+            height,
+            &parent,
+        )?
+        .map(|obs| -> Result<_> {
+            let raw = serde_json::to_vec(&WireTransaction::EpochObservation {
+                observation: obs.clone(),
+            })?;
+            Ok((raw, obs))
+        })
+        .transpose()?;
         for raw in txs.into_iter().take(self.config.max_txs.saturating_mul(4)) {
-            if let Ok(WireTransaction::EpochObservation { observation: obs }) =
-                wire(&self.config, &raw)
-            {
-                if boundary
-                    && observation.is_none()
-                    && crate::runtime::issuance_timing::plan_block(
-                        &self.storage,
-                        &timing,
-                        height,
-                        &parent,
-                        Some(&obs),
-                    )
-                    .is_ok()
-                {
-                    observation = Some((raw, obs));
-                }
-            } else {
+            if !matches!(
+                wire(&self.config, &raw),
+                Ok(WireTransaction::EpochObservation { .. })
+            ) {
                 candidates.push(raw);
             }
         }
@@ -4031,6 +4129,7 @@ impl ConsensusApplication {
         let book = recovery_book(&self.storage, &self.config)?.context("Recovery missing")?;
         let mut state =
             load_ordinary(&self.storage, &self.config, Some(&book))?.context("Ordinary missing")?;
+        state.prune_receipts_for(height);
         let mut recovery = book.begin_block(height)?;
         let mut shared = shared_meter(&state.config, &recovery)?;
         let liquidity = ordinary_runtime::eligible_liquidity(&mut staged, &recovery.book)?;
@@ -4194,6 +4293,17 @@ impl ConsensusApplication {
             boundary == observation.is_some(),
             "Completed parent epoch observation required at boundary only"
         );
+        ensure!(
+            observation
+                == derived_observation(
+                    &self.storage,
+                    &self.config,
+                    timing.config.epoch_blocks,
+                    input.height,
+                    &parent,
+                )?,
+            "Epoch observation differs from committed block usage"
+        );
         let emergency_plan = self.emergency_plan(input.height, &input.txs)?;
         let upgrade_plan = self.upgrade_plan(input.height, &input.txs, emergency_plan.as_ref())?;
         let handover_plan = self.handover_plan(
@@ -4230,6 +4340,9 @@ impl ConsensusApplication {
         }
         let committed_recovery = recovery_book(&self.storage, &self.config)?;
         let mut ordinary = load_ordinary(&self.storage, &self.config, committed_recovery.as_ref())?;
+        if let Some(state) = ordinary.as_mut() {
+            state.prune_receipts_for(input.height);
+        }
         let mut recovery = committed_recovery
             .map(|book| book.begin_block(input.height))
             .transpose()?;
@@ -4496,8 +4609,15 @@ impl ConsensusApplication {
             result_digest: results_digest(&self.config, &results, &validator_updates)?,
             prior_app_hash: expected_info.app_hash.clone(),
         };
+        // Filled by per-account state (phase B1b); empty until then.
+        let deletes = Deletes::new();
         let next_state_digest =
-            state_digest(&self.storage, &writes, self.config.governance.is_some())?;
+            state_digest_with(
+                &self.storage,
+                &writes,
+                &deletes,
+                self.config.governance.is_some(),
+            )?;
         let next_app_hash = app_hash(&next_state_digest, &anchor)?;
         let head = Head {
             anchor,
@@ -4514,6 +4634,7 @@ impl ConsensusApplication {
                 self.config.governance.is_some(),
             )?,
             writes,
+            deletes,
             journal,
             record: BlockRecord {
                 input,
@@ -4589,6 +4710,13 @@ impl ConsensusApplication {
         } else {
             ensure!(adaptive.is_empty(), "Unexpected controller journal writes");
         }
+        ensure!(
+            prepared.deletes.iter().all(|key| !prepared.writes.contains_key(key)),
+            "A block cannot write and delete the same key"
+        );
+        for key in &prepared.deletes {
+            batch.delete(key);
+        }
         for (key, value) in &prepared.writes {
             if !key.starts_with(b"adaptive:") {
                 batch.put(key, value);
@@ -4610,6 +4738,12 @@ impl ConsensusApplication {
         batch.put(HEAD_KEY, serde_json::to_vec(&prepared.record.head)?);
         write(&self.storage, batch)?;
         self.pending = None;
+        // Earlier history was verified before this write and is unchanged, so
+        // check only the new block. On failure the mark stays cleared and the
+        // next call repeats the complete check.
+        let sequence = self.storage.db.latest_sequence_number();
+        verify_history(&HistoryRead::new(&self.storage), Some(expected_next.height))?;
+        self.storage.mark_verified(sequence)?;
         Ok(expected_next)
     }
     // Caller holds the execution lock and has validated the committed state.
@@ -4638,8 +4772,7 @@ impl ConsensusApplication {
         wanted_height: i64,
     ) -> Result<(Info, serde_json::Value)> {
         let _guard = self.storage.lock_execution()?;
-        let history = HistoryRead::new(&self.storage);
-        verify_recovery_with(&history)?;
+        verify_recovery(&self.storage)?;
         let info = current_info(&self.storage)?;
         ensure!(
             wanted_height == 0 || u64::try_from(wanted_height).ok() == Some(info.height),
@@ -4834,12 +4967,31 @@ impl ConsensusApplication {
 }
 
 /// Validate durable application state without entering the development journal.
+/// The complete history check runs unless no write has occurred on this storage
+/// handle since the last successful complete check or per-block commit check.
 pub fn verify_recovery(storage: &Storage) -> Result<()> {
-    verify_recovery_with(&HistoryRead::new(storage)).map(|_| ())
-}
-fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
     #[cfg(test)]
     RECOVERY_PASSES.with(|n| n.set(n.get() + 1));
+    if storage.verified_at_current_sequence()? {
+        return Ok(());
+    }
+    let sequence = storage.db.latest_sequence_number();
+    verify_recovery_with(&HistoryRead::new(storage))?;
+    storage.mark_verified(sequence)
+}
+fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
+    verify_history(history, None)
+}
+/// With `from`, block checks cover only heights `from..=head`, and the
+/// whole-history checks are skipped: the unknown-key and orphan scans,
+/// cross-history duplicate sets, exact penalty evidence equality and control
+/// history replay. The complete check (`from = None`) runs at startup and after
+/// any write outside commit.
+fn verify_history(history: &HistoryRead<'_>, from: Option<u64>) -> Result<EmergencyTrace> {
+    #[cfg(test)]
+    if from.is_none() {
+        FULL_HISTORY_PASSES.with(|n| n.set(n.get() + 1));
+    }
     let storage = history.storage;
     let raw = storage
         .db
@@ -4903,7 +5055,11 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
             state.last_height == height,
             "Ordinary height differs from committed head"
         );
-        for receipt in state.history.receipts() {
+        for receipt in state
+            .history
+            .receipts()
+            .filter(|receipt| from.is_none_or(|from| receipt.block_height() >= from))
+        {
             ensure!(
                 ordinary_positions
                     .insert((receipt.block_height(), receipt.block_index()), receipt)
@@ -4914,7 +5070,11 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
     }
     let mut recovery_positions = BTreeMap::new();
     if let Some(book) = &recovery {
-        for receipt in book.sponsor_receipts.values() {
+        for receipt in book
+            .sponsor_receipts
+            .values()
+            .filter(|receipt| from.is_none_or(|from| receipt.block_height >= from))
+        {
             ensure!(
                 recovery_positions
                     .insert((receipt.block_height, receipt.block_index), receipt)
@@ -4932,7 +5092,7 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
     let mut recorded_evidence = BTreeMap::new();
     if let Some(head) = &current {
         ensure!(
-            (1..=MAX_HISTORY).contains(&height)
+            height >= 1
                 && head.anchor.height == height
                 && state.last_height == height
                 && block_lifecycle::height(storage, "emission:last_height")? == height,
@@ -4944,8 +5104,17 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
             "Engine head metadata differs"
         );
         known.insert(HEAD_KEY.as_bytes().to_vec());
-        let mut previous: Option<Head> = None;
-        for h in 1..=height {
+        let start = from.unwrap_or(1);
+        ensure!(
+            (1..=height).contains(&start),
+            "Verification start is outside committed history"
+        );
+        let mut previous: Option<Head> = if start > 1 {
+            Some(history.block(start - 1)?.head.clone())
+        } else {
+            None
+        };
+        for h in start..=height {
             let key = record_key(h);
             known.insert(key.as_bytes().to_vec());
             let record = history.block(h)?;
@@ -5051,6 +5220,17 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
                         stored == observation
                             && record.result.tx_results[index] == TxResult::observation(),
                         "Committed observation differs"
+                    );
+                    ensure!(
+                        Some(observation)
+                            == derived_observation(
+                                storage,
+                                &config,
+                                state.config.epoch_blocks,
+                                h,
+                                &anchor.parent_engine_hash,
+                            )?,
+                        "Committed observation differs from committed block usage"
                     );
                     observations += 1;
                 }
@@ -5201,6 +5381,10 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
                     "Receipt index differs"
                 );
             }
+            // Ordinary receipts older than the retention window were pruned.
+            let ordinary_receipts_pruned = ordinary
+                .as_ref()
+                .is_some_and(|state| h.saturating_add(state.receipt_window()) <= height);
             for (index, result) in record.result.tx_results.iter().enumerate() {
                 ensure!(
                     result.gas_used >= 0
@@ -5211,6 +5395,11 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
                 if result.code == 0 || result.code == 3 {
                     ensure!(
                         indices.contains(&index)
+                            || (ordinary_receipts_pruned
+                                && matches!(
+                                    wire(&config, &record.input.txs[index]),
+                                    Ok(WireTransaction::OrdinaryV2 { .. })
+                                ))
                             || (boundary && index == 0 && result == &TxResult::observation())
                             || (result == &emergency_result()
                                 && matches!(
@@ -5275,7 +5464,12 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
             })
             .collect::<Result<_>>()?;
         ensure!(
-            receipts.len() == penalties.incidents.len() && receipts == recorded_evidence,
+            receipts.len() == penalties.incidents.len()
+                && if from.is_none() {
+                    receipts == recorded_evidence
+                } else {
+                    recorded_evidence.keys().all(|fact| receipts.contains_key(fact))
+                },
             "Penalty receipts differ from committed evidence inputs"
         );
     } else {
@@ -5286,6 +5480,12 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
     }
     ensure!(recovery_positions.is_empty(), "Orphan recovery receipt");
     ensure!(ordinary_positions.is_empty(), "Orphan ordinary receipt");
+    if from.is_some() {
+        return Ok(EmergencyTrace {
+            records: Vec::new(),
+            states: Vec::new(),
+        });
+    }
     for item in storage.db.iterator(IteratorMode::Start) {
         let (key, _) = item?;
         ensure!(
@@ -5337,6 +5537,10 @@ fn verify_recovery_with(history: &HistoryRead<'_>) -> Result<EmergencyTrace> {
         }
     }
     let emergency_trace = emergency_history_with(history, &config)?;
+    ensure!(
+        committed_emergency_records(storage, &config)? == emergency_trace.records,
+        "Stored emergency receipts differ from committed history"
+    );
     let outcomes = upgrade_history(history, &config, &emergency_trace, None)?;
     handover_history(history, &config, &emergency_trace, &outcomes, None)?;
     Ok(emergency_trace)

@@ -73,6 +73,53 @@ Each height stores a full `BlockRecord` (input transactions, results, head,
 accepted records) under `consensus:v1:block:`. This duplicates CometBFT's block
 store. Today it exists to feed the replay in P2.
 
+### P8. Issuance epoch cap and per-block scans
+
+Adaptive issuance stops permanently once the epoch index exceeds
+`max_recorded_epochs` ("Issuance journal audit limit reached",
+`runtime/issuance_timing.rs`), configurable up to 1,000,000. Every block also
+re-verified the whole issuance journal and scanned the entire database to
+build its view. The supply check (`supply::validate_native`, called in every
+`prepare`) scanned the entire database as well.
+
+### P9. Per-block emission events in consensus state
+
+`emission:event:{height}` is written every block (`block_lifecycle.rs`) under
+the `emission:` state prefix. Consensus only reads the current and previous
+events, but the state digest and supply view read one more entry for each past
+block.
+
+### P10. Emergency history walk reachable from CheckTx
+
+CheckTx for an upgrade control called `upgrade_plan`, which rebuilt the
+emergency history by decoding every committed block before the control's
+signature was checked. Any well-formed forged control cost a full walk.
+
+### P11. Validator-set history cap
+
+Lifecycle `history` and `update_history` grow by one entry per validator-set
+change, are never pruned, and must stay at or below 10,000 entries
+(`runtime/validator_lifecycle.rs`). After 10,000 changes the lifecycle state
+fails validation and the chain stops.
+
+### P12. Recovery book: 4,096 accounts in one value
+
+`recovery:v1:book` holds every recovery account, sponsor receipt and operation
+index in one value of up to 64 MiB, rewritten every block because its height
+advances (`recovery_fees.rs`). `MAX_ACCOUNTS = 4096`, and ordinary
+transactions require a recovery account, so the ordinary account system is
+capped at 4,096 accounts. Sponsor receipts are capped at 65,536 and must cover
+every sponsor nonce ("No pruning is authorized"; "All sponsorship history is
+retained").
+
+### P13. Unbonding records retained forever
+
+The validator lifecycle keeps every unbonding record and requires their count
+to equal `next_unbond_id` (`runtime/validator_lifecycle.rs`). With
+`MAX_ITEMS = 10,000`, the chain stops after 10,000 unbonds in total. Each
+record also requires the validator-set view at its exposure height, which ties
+unbond retention to validator-set history (P11).
+
 ## Invariants to preserve
 
 `verify_recovery` enforces real invariants. The redesign keeps each of them,
@@ -174,7 +221,18 @@ validators join without replaying from genesis.
 
 | Phase | Content | Exit tests |
 | --- | --- | --- |
-| A | D1, D2, D5 | In-process chain to 1,000,000 blocks and 100,000 ordinary transactions with flat per-call latency; the `independent_databases_*` determinism tests extended to long chains; crash and restart at every commit step; existing suite green |
+| A1 (done) | D1: verification mark, per-block commit check, prefix state digest | Zero complete checks during normal operation; one after an outside write; digest reads only state keys |
+| A2 (done) | D2 cap removal; prefix reads for the issuance and supply views; emergency records from stored receipts, proven equal to history by the complete check (P8 scans, P10) | Block inputs accepted beyond 100,000; existing suite green |
+| A3 (done) | Ordinary receipts kept only for the fee profile's maximum transaction lifetime (D5, P4 ordinary); the complete check accepts pruned heights. Supply validation reads only the current emission event (P9, supply side) | Capacity returns after the window; pruned transactions cannot replay; reopen passes the complete check; supply valid with past events deleted |
+
+Deferred from A3, because each needs a redesign rather than a window:
+
+| Item | Moves to | Reason |
+| --- | --- | --- |
+| Recovery book and sponsor receipts (P12, P4 recovery) | Phase B, D4 | Needs per-account keys and nonce-plus-expiry replay protection instead of full sponsor history |
+| Validator-set history and unbonding records (P11, P13) | Step 4 (stake withdrawals) | Both rework the lifecycle module, whose history entries cross-validate each other |
+| Issuance journal and epoch cap (P8) | Phase B, with deletions | Needs a controller checkpoint plus pruning of per-epoch records. Until then, `max_recorded_epochs` (up to 1,000,000) and the epoch length bound it; with daily epochs the per-block replay grows by about 365 controller steps a year. Step 3 made the observations deterministic but left the journal unchanged |
+| Emission events in the state commitment (P9, digest side) | Phase B, D3 | An incremental Merkle root removes the per-block read of all state keys |
 | B | D4, D3, deletions (app hash v2) | Tree root equals a naive reference over the same key set (property tests); inclusion and non-inclusion proofs verify; determinism across independent databases; supply invariants; G35 profile PASS |
 | C | D6, block-record pruning | A new node joins from a snapshot and matches the application hash; pruned nodes keep full consensus correctness |
 
