@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    # Deploy only when QuantumVault changes. Use workflow_dispatch otherwise.
+    paths:
+      - 'QuantumVaultMVP/**'
   workflow_dispatch:
 
 jobs:
