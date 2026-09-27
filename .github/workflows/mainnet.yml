@@ -56,6 +56,11 @@ jobs:
         run: python3 scripts/check_consensus_cargo_profile.py --output "$RUNNER_TEMP/consensus-profile.json"
       - name: Cryptographic routes match the E01 inventory
         run: python3 scripts/e01_inventory.py --check
+      - name: Helper ownership and native execution policy (E02)
+        run: |
+          python3 scripts/check_helper_control.py
+          python3 -B -m unittest discover -s scripts -p test_check_helper_control.py
+          python3 -B -m unittest discover -s tools/native-execution-policy -p 'test_*.py'
       - name: Build all targets
         run: cargo build --workspace --all-targets --locked
       - name: Test
@@ -101,6 +106,51 @@ jobs:
         run: |
           go build -mod=readonly -o "$RUNNER_TEMP/bin/" ./cmd/...
           go build -mod=readonly -o "$RUNNER_TEMP/bin/cometbft" github.com/cometbft/cometbft/cmd/cometbft
+
+  # E02 kernel checks on a disposable runner (AppArmor, root). Diagnostic only;
+  # T03 qualifies the frozen service candidate.
+  e02-native:
+    name: E02 helper ownership (native AppArmor diagnostic)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mainnet/node
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: mainnet/node/consensus/root-authorization/go.mod
+          cache-dependency-path: mainnet/node/consensus/*/go.sum
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: 1.88.0
+      - name: Host tools
+        run: sudo apt-get update && sudo apt-get install -y apparmor apparmor-utils gcc libc6-dev linux-libc-dev
+      - name: Build helper, fixture and Rust fixtures
+        run: |
+          out="$RUNNER_TEMP/e02"
+          mkdir -p "$out/fixture"
+          (cd consensus/root-authorization \
+            && CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false -o "$out/root-verify" ./cmd/dytallix-root-verify \
+            && DYT_E02_FIXTURE_DIR="$out/fixture" go test -mod=readonly -count=1 -run TestExportHelperQualificationFixture .)
+          # Static, so the rendered supervisor profile needs no shared libraries.
+          RUSTFLAGS="-C target-feature=+crt-static" cargo build --locked --release \
+            --target x86_64-unknown-linux-gnu -p dytallix-release-runtime --features qualification-fixtures \
+            --bin release-runtime-profile-admission
+          cargo build --locked --release -p dytallix-release-runtime --features qualification-fixtures \
+            --bin release-runtime-pause-qualification
+      - name: Native checks
+        run: |
+          out="$RUNNER_TEMP/e02"
+          sudo python3 tools/native-execution-policy/e02_native/run_e02_native.py \
+            --go-helper "$out/root-verify" --fixture-dir "$out/fixture" \
+            --admission-bin target/x86_64-unknown-linux-gnu/release/release-runtime-profile-admission \
+            --pause-bin target/release/release-runtime-pause-qualification \
+            --output-dir "$out/result"
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/e02/result/E02_NATIVE_SUMMARY.json" || true
 
   sdk:
     name: SDK and CLI
