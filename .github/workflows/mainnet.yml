@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'mainnet/**'
+      - '!mainnet/**/*.md'
       - '.github/workflows/mainnet.yml'
   pull_request:
     paths:
       - 'mainnet/**'
+      - '!mainnet/**/*.md'
       - '.github/workflows/mainnet.yml'
   workflow_dispatch:
 
@@ -64,8 +66,10 @@ jobs:
           python3 scripts/check_helper_control.py
           python3 -B -m unittest discover -s scripts -p test_check_helper_control.py
           python3 -B -m unittest discover -s tools/native-execution-policy -p 'test_*.py'
+      # The test profile optimizes the PQC crates, so a dev-profile build
+      # would compile the workspace a second time in the Test step.
       - name: Build all targets
-        run: cargo build --workspace --all-targets --locked
+        run: cargo build --workspace --all-targets --locked --profile test
       - name: Test
         run: cargo test --workspace --locked --no-fail-fast
       - name: PQC HTTP adapter
