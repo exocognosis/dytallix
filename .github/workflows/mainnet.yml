@@ -119,7 +119,7 @@ jobs:
   e02-native:
     name: E02 helper ownership (native AppArmor diagnostic)
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     defaults:
       run:
         working-directory: mainnet/node
@@ -133,7 +133,7 @@ jobs:
         with:
           toolchain: 1.88.0
       - name: Host tools
-        run: sudo apt-get update && sudo apt-get install -y apparmor apparmor-utils gcc libc6-dev linux-libc-dev
+        run: sudo apt-get update && sudo apt-get install -y apparmor apparmor-utils gcc libc6-dev linux-libc-dev clang libclang-dev cmake pkg-config
       - name: Build helper, fixture and Rust fixtures
         run: |
           out="$RUNNER_TEMP/e02"
@@ -158,6 +158,40 @@ jobs:
       - name: Summary
         if: always()
         run: cat "$RUNNER_TEMP/e02/result/E02_NATIVE_SUMMARY.json" || true
+      # State sync v1, step C5: the real guarded binaries as a four-validator
+      # chain; node 3 joins late by state sync. Independent of the E02 result.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: ${{ !cancelled() }}
+        with:
+          go-version-file: mainnet/node/consensus/cometbft/go.mod
+          cache-dependency-path: mainnet/node/consensus/*/go.sum
+      - name: Build state sync join binaries
+        if: ${{ !cancelled() }}
+        run: |
+          out="$RUNNER_TEMP/join"
+          mkdir -p "$out"
+          (cd consensus/cometbft \
+            && go build -mod=readonly -trimpath -tags dytallix_pqc_only,dytallix_pqc_ipc -o "$out/" \
+              ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge ./cmd/dytallix-light-export \
+            && go build -mod=readonly -trimpath -o "$out/" ./cmd/dytallix-comet-fixture)
+          CARGO_PROFILE_DEV_DEBUG=0 cargo build --locked -p dytallix-fast-node --bin consensus_stdio
+          CARGO_PROFILE_DEV_DEBUG=0 cargo build --locked -p dytallix-native-supervisor \
+            --features qualification-fixtures --bin state-sync-join
+          cp target/debug/consensus_stdio target/debug/state-sync-join "$out/"
+      - name: State sync join (C5)
+        if: ${{ !cancelled() }}
+        run: |
+          out="$RUNNER_TEMP/join"
+          # The production unit's system call deny list; the children's guards
+          # require no_new_privs and a seccomp filter.
+          deny="$(python3 -c 'import sys; sys.path.insert(0, "tools/native-execution-policy"); import render; print(render.SYSTEM_CALL_DENY)')"
+          sudo systemd-run --wait --pipe --collect --quiet \
+            -p NoNewPrivileges=yes -p "SystemCallFilter=$deny" -p SystemCallErrorNumber=EPERM \
+            -p SystemCallArchitectures=native \
+            "$out/state-sync-join" --bin "$out" --work "$out/work"
+      - name: State sync join logs
+        if: failure()
+        run: sudo sh -c 'for log in "$0"/work/logs/*.log; do echo "== $log"; tail -n 40 "$log"; done' "$RUNNER_TEMP/join" || true
 
   sdk:
     name: SDK and CLI
