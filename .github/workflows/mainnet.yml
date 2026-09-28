@@ -70,6 +70,8 @@ jobs:
           python3 scripts/check_helper_control.py
           python3 -B -m unittest discover -s scripts -p test_check_helper_control.py
           python3 -B -m unittest discover -s tools/native-execution-policy -p 'test_*.py'
+      - name: Production binding review (mainnet preparation)
+        run: python3 -B -m unittest discover -s tools/mainnet-preparation -p 'test_*.py'
       # The test profile optimizes the PQC crates, so a dev-profile build
       # would compile the workspace a second time in the Test step.
       - name: Build all targets
