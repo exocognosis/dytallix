@@ -78,6 +78,15 @@ jobs:
         run: cargo test --workspace --locked --no-fail-fast
       - name: PQC HTTP adapter
         run: cargo test --locked --manifest-path consensus/pqc-http-adapter/Cargo.toml
+      # Real SLH-DSA signatures from disposable fixture keys, verified in
+      # process through the test-only snapshot verifier.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # The toolchain the engine job builds root-authorization with.
+          go-version-file: mainnet/node/consensus/cometbft/go.mod
+          cache-dependency-path: mainnet/node/consensus/root-authorization/go.sum
+      - name: Signed-fixture tests (E04 gap 11)
+        run: python3 scripts/run_signed_fixture_tests.py --work "$RUNNER_TEMP/signed"
 
   consensus-engine:
     name: Consensus engine (Go)
