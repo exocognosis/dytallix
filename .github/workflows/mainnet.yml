@@ -54,6 +54,10 @@ jobs:
         run: |
           python3 scripts/check_module_boundaries.py
           python3 -B -m unittest discover -s scripts -p test_module_boundaries.py
+      - name: Interface inventory matches the source (E04 gap 9)
+        run: |
+          python3 scripts/check_interface_inventory.py
+          python3 -B -m unittest discover -s scripts -p test_check_interface_inventory.py
       # The G35 check reads the locked graph offline; fetch it first.
       - name: Fetch locked dependencies
         run: cargo fetch --locked
