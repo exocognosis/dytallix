@@ -87,6 +87,10 @@ jobs:
           cache-dependency-path: mainnet/node/consensus/root-authorization/go.sum
       - name: Signed-fixture tests (E04 gap 11)
         run: python3 scripts/run_signed_fixture_tests.py --work "$RUNNER_TEMP/signed"
+      # Two test builds of the application, each an owned child of the owner
+      # launcher, under no_new_privs and the production system call deny list.
+      - name: Signed process tests (E04 gap 11)
+        run: python3 scripts/run_signed_fixture_tests.py --process systemd --work "$RUNNER_TEMP/process"
 
   consensus-engine:
     name: Consensus engine (Go)
