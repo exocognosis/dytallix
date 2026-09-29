@@ -1,5 +1,10 @@
 # Dytallix Faucet
 
+This faucet moved here from `mainnet/faucet` on 29 September 2026 (E04 gap
+20, P01). It is testnet-only and served over TLS, and mainnet carries no
+classical public-key cryptography. Mainnet has no faucet: accounts are
+funded at genesis or by a transfer.
+
 Public faucet backend source for the Dytallix testnet.
 
 This repository now contains the Node.js backend that serves the live token
