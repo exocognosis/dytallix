@@ -121,7 +121,8 @@ jobs:
           go vet -mod=readonly -tags "$TAGS" ./...
           go test -mod=readonly -tags "$TAGS" ./... github.com/cometbft/cometbft/privval github.com/cometbft/cometbft/node
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false \
-            -tags "$TAGS" -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge
+            -tags "$TAGS" -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
+            ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
       - name: No quantum-vulnerable crypto in the PQC-only Go graphs (G35)
         working-directory: mainnet/node
         run: |
