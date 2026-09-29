@@ -233,8 +233,10 @@ jobs:
         run: python3 scripts/check_protocol_vendor.py --node-root ../node
       - name: Test
         run: cargo test --workspace --locked
-      # The default CLI has no testnet REST client; test the legacy build too.
-      - name: Test legacy testnet build
+      # No classical public-key cryptography or TLS crate in any mainnet
+      # lockfile (E04 gap 19; P01, 28 September 2026).
+      - name: No classical cryptography in the mainnet lockfiles
         run: |
-          cargo test --locked -p dytallix-cli --features legacy-network
-          cargo test --locked -p dytallix-sdk --features network
+          python3 -B -m unittest discover -s scripts -p test_no_classical.py
+          python3 scripts/check_no_classical.py Cargo.lock ../node/Cargo.lock \
+            ../node/consensus/pqc-http-adapter/Cargo.lock ../contracts/Cargo.lock ../pqc/Cargo.lock
