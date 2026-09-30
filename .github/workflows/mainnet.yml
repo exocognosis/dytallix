@@ -106,25 +106,23 @@ jobs:
           cache-dependency-path: mainnet/node/consensus/*/go.sum
       - name: Vet and test
         run: |
-          for module in cometbft owner-guard root-authorization; do
+          for module in owner-guard root-authorization; do
             echo "::group::$module"
             (cd "mainnet/node/consensus/$module" && go vet -mod=readonly ./... && go test -mod=readonly ./...)
             echo "::endgroup::"
           done
-      # Production binaries use these tags. They select nothing since E04 gap 20
-      # deleted the classical code (F-c removes them). This step also vets and
-      # tests every upstream package (consensus/cometbft/UPSTREAM_TESTS.md).
-      - name: PQC-only vet, test and production build
+      # The engine fork has one build, with no build tags (E04 gap 20). This
+      # step vets and tests the fork's own packages and every upstream package
+      # (consensus/cometbft/UPSTREAM_TESTS.md), then builds the production set.
+      - name: Engine fork vet, test and production build
         working-directory: mainnet/node/consensus/cometbft
-        env:
-          TAGS: dytallix_pqc_only,dytallix_pqc_ipc
         run: |
-          go vet -mod=readonly -tags "$TAGS" ./... github.com/cometbft/cometbft/...
-          go test -mod=readonly -tags "$TAGS" ./... github.com/cometbft/cometbft/...
+          go vet -mod=readonly ./... github.com/cometbft/cometbft/...
+          go test -mod=readonly ./... github.com/cometbft/cometbft/...
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false \
-            -tags "$TAGS" -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
+            -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
             ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
-      - name: No quantum-vulnerable crypto in the PQC-only Go graphs (G35)
+      - name: No quantum-vulnerable crypto in the Go graphs (G35)
         working-directory: mainnet/node
         run: |
           python3 -B -m unittest discover -s scripts -p test_consensus_go_graph.py
@@ -192,9 +190,8 @@ jobs:
           out="$RUNNER_TEMP/join"
           mkdir -p "$out"
           (cd consensus/cometbft \
-            && go build -mod=readonly -trimpath -tags dytallix_pqc_only,dytallix_pqc_ipc -o "$out/" \
-              ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge ./cmd/dytallix-light-export \
-            && go build -mod=readonly -trimpath -o "$out/" ./cmd/dytallix-comet-fixture)
+            && go build -mod=readonly -trimpath -o "$out/" ./cmd/dytallix-pqc-engine \
+              ./cmd/dytallix-comet-bridge ./cmd/dytallix-light-export ./cmd/dytallix-comet-fixture)
           CARGO_PROFILE_DEV_DEBUG=0 cargo build --locked -p dytallix-fast-node --bin consensus_stdio
           CARGO_PROFILE_DEV_DEBUG=0 cargo build --locked -p dytallix-native-supervisor \
             --features qualification-fixtures --bin state-sync-join
