@@ -111,15 +111,16 @@ jobs:
             (cd "mainnet/node/consensus/$module" && go vet -mod=readonly ./... && go test -mod=readonly ./...)
             echo "::endgroup::"
           done
-      # Production binaries use these tags; the default-tag build above keeps
-      # upstream's classical code paths for comparison only.
+      # Production binaries use these tags. They select nothing since E04 gap 20
+      # deleted the classical code (F-c removes them). This step also vets and
+      # tests every upstream package (consensus/cometbft/UPSTREAM_TESTS.md).
       - name: PQC-only vet, test and production build
         working-directory: mainnet/node/consensus/cometbft
         env:
           TAGS: dytallix_pqc_only,dytallix_pqc_ipc
         run: |
-          go vet -mod=readonly -tags "$TAGS" ./...
-          go test -mod=readonly -tags "$TAGS" ./... github.com/cometbft/cometbft/privval github.com/cometbft/cometbft/node
+          go vet -mod=readonly -tags "$TAGS" ./... github.com/cometbft/cometbft/...
+          go test -mod=readonly -tags "$TAGS" ./... github.com/cometbft/cometbft/...
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false \
             -tags "$TAGS" -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
             ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
