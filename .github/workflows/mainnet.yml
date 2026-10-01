@@ -80,6 +80,13 @@ jobs:
         run: cargo test --workspace --locked --no-fail-fast
       - name: PQC HTTP adapter
         run: cargo test --locked --manifest-path consensus/pqc-http-adapter/Cargo.toml
+      # Production activation v1 (A1): the production build compiles without the
+      # development entry points and runs only the production profiles.
+      - name: Production build (A1)
+        run: |
+          cargo check --locked -p dytallix-fast-node --features production --bins
+          cargo check --locked -p dytallix-native-supervisor --features production --bins
+          cargo test --locked -p dytallix-fast-node --features production --lib build_profile
       # Real SLH-DSA signatures from disposable fixture keys, verified in
       # process through the test-only snapshot verifier.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -111,9 +118,12 @@ jobs:
             (cd "mainnet/node/consensus/$module" && go vet -mod=readonly ./... && go test -mod=readonly ./...)
             echo "::endgroup::"
           done
-      # The engine fork has one build, with no build tags (E04 gap 20). This
-      # step vets and tests the fork's own packages and every upstream package
-      # (consensus/cometbft/UPSTREAM_TESTS.md), then builds the production set.
+      # The engine fork has one cryptographic build: classical code is deleted
+      # and no tag selects a classical path (E04 gap 20). The only tag is
+      # `production` (production activation v1), which removes the development
+      # and staging entry points. This step vets and tests the fork's own
+      # packages and every upstream package (consensus/cometbft/UPSTREAM_TESTS.md),
+      # then builds the release set in both builds.
       - name: Engine fork vet, test and production build
         working-directory: mainnet/node/consensus/cometbft
         run: |
@@ -121,6 +131,11 @@ jobs:
           go test -mod=readonly ./... github.com/cometbft/cometbft/...
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false \
             -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
+            ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
+          go vet -mod=readonly -tags production ./...
+          go test -mod=readonly -tags production ./internal/enginepqc/ -run TestProductionBuild
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -tags production -trimpath -buildvcs=false \
+            -o "$RUNNER_TEMP/pqc-production/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
             ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
       - name: No quantum-vulnerable crypto in the Go graphs (G35)
         working-directory: mainnet/node
