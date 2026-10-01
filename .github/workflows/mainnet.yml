@@ -135,12 +135,13 @@ jobs:
           go test -mod=readonly ./... github.com/cometbft/cometbft/...
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false \
             -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
-            ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
+            ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc ./cmd/dytallix-peer-seed
           go vet -mod=readonly -tags production ./...
           go test -mod=readonly -tags production ./internal/enginepqc/ -run 'TestProductionBuild|TestProductionProfile'
+          go test -mod=readonly -tags production ./cmd/dytallix-peer-seed/
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -tags production -trimpath -buildvcs=false \
             -o "$RUNNER_TEMP/pqc-production/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
-            ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
+            ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc ./cmd/dytallix-peer-seed
       - name: No quantum-vulnerable crypto in the Go graphs (G35)
         working-directory: mainnet/node
         run: |
