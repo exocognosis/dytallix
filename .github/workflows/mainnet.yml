@@ -137,7 +137,7 @@ jobs:
             -o "$RUNNER_TEMP/pqc/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
             ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
           go vet -mod=readonly -tags production ./...
-          go test -mod=readonly -tags production ./internal/enginepqc/ -run TestProductionBuild
+          go test -mod=readonly -tags production ./internal/enginepqc/ -run 'TestProductionBuild|TestProductionProfile'
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=readonly -tags production -trimpath -buildvcs=false \
             -o "$RUNNER_TEMP/pqc-production/" ./cmd/dytallix-pqc-engine ./cmd/dytallix-comet-bridge \
             ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc
