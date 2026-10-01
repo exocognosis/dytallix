@@ -82,11 +82,11 @@ jobs:
         run: cargo test --locked --manifest-path consensus/pqc-http-adapter/Cargo.toml
       # Production activation v1 (A1): the production build compiles without the
       # development entry points and runs only the production profiles.
-      - name: Production build (A1)
+      - name: Production build (A1, A2)
         run: |
           cargo check --locked -p dytallix-fast-node --features production --bins
           cargo check --locked -p dytallix-native-supervisor --features production --bins
-          cargo test --locked -p dytallix-fast-node --features production --lib build_profile
+          cargo test --locked -p dytallix-fast-node --features production --lib -- build_profile root_genesis::threshold
       # Real SLH-DSA signatures from disposable fixture keys, verified in
       # process through the test-only snapshot verifier.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -96,6 +96,10 @@ jobs:
           cache-dependency-path: mainnet/node/consensus/root-authorization/go.sum
       - name: Signed-fixture tests (E04 gap 11)
         run: python3 scripts/run_signed_fixture_tests.py --work "$RUNNER_TEMP/signed"
+      # A production build opens a chain from a root genesis signed three of
+      # five with the offline signer (production activation v1, A2).
+      - name: Signed production root genesis (A2)
+        run: python3 scripts/run_signed_fixture_tests.py --production --tools "$RUNNER_TEMP/signed" --work "$RUNNER_TEMP/production"
       # Two test builds of the application, each an owned child of the owner
       # launcher, under no_new_privs and the production system call deny list.
       - name: Signed process tests (E04 gap 11)
