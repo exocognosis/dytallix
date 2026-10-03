@@ -78,8 +78,11 @@ jobs:
         run: cargo build --workspace --all-targets --locked --profile test
       - name: Test
         run: cargo test --workspace --locked --no-fail-fast
+      # Each adapter build serves only its own profile (production activation v1).
       - name: PQC HTTP adapter
-        run: cargo test --locked --manifest-path consensus/pqc-http-adapter/Cargo.toml
+        run: |
+          cargo test --locked --manifest-path consensus/pqc-http-adapter/Cargo.toml
+          cargo test --locked --manifest-path consensus/pqc-http-adapter/Cargo.toml --features production
       # Production activation v1 (A1): the production build compiles without the
       # development entry points and runs only the production profiles.
       - name: Production build (A1, A2, A7)
