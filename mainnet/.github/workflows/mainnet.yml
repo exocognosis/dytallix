@@ -4,13 +4,13 @@ on:
   push:
     branches: [main]
     paths:
-      - 'mainnet/**'
-      - '!mainnet/**/*.md'
+      - '**'
+      - '!**/*.md'
       - '.github/workflows/mainnet.yml'
   pull_request:
     paths:
-      - 'mainnet/**'
-      - '!mainnet/**/*.md'
+      - '**'
+      - '!**/*.md'
       - '.github/workflows/mainnet.yml'
   workflow_dispatch:
 
@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 90
     defaults:
       run:
-        working-directory: mainnet/node
+        working-directory: node
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Free disk space
@@ -46,7 +46,7 @@ jobs:
           toolchain: 1.88.0
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
-          workspaces: mainnet/node
+          workspaces: node
           key: consensus
       - name: Native build dependencies
         run: sudo apt-get update && sudo apt-get install -y clang libclang-dev cmake pkg-config
@@ -76,12 +76,6 @@ jobs:
       # mainnet-release.yml.
       - name: Release build driver (E06)
         run: python3 -B -m unittest discover -s ../release -p 'test_*.py'
-      # move: drop-start
-      # The DytallixHQ/dytallix workflows in mainnet/.github are these with the
-      # mainnet/ prefix removed (release/MOVE.md).
-      - name: Repository move workflows (E06)
-        run: python3 ../release/repository.py render-workflows --check
-      # move: drop-end
       # The test profile optimizes the PQC crates, so a dev-profile build
       # would compile the workspace a second time in the Test step.
       - name: Build all targets
@@ -105,8 +99,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # The toolchain the engine job builds root-authorization with.
-          go-version-file: mainnet/node/consensus/cometbft/go.mod
-          cache-dependency-path: mainnet/node/consensus/root-authorization/go.sum
+          go-version-file: node/consensus/cometbft/go.mod
+          cache-dependency-path: node/consensus/root-authorization/go.sum
       - name: Signed-fixture tests (E04 gap 11)
         run: python3 scripts/run_signed_fixture_tests.py --work "$RUNNER_TEMP/signed"
       # A production build opens a chain from a root genesis signed three of
@@ -126,13 +120,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: mainnet/node/consensus/cometbft/go.mod
-          cache-dependency-path: mainnet/node/consensus/*/go.sum
+          go-version-file: node/consensus/cometbft/go.mod
+          cache-dependency-path: node/consensus/*/go.sum
       - name: Vet and test
         run: |
           for module in owner-guard root-authorization; do
             echo "::group::$module"
-            (cd "mainnet/node/consensus/$module" && go vet -mod=readonly ./... && go test -mod=readonly ./...)
+            (cd "node/consensus/$module" && go vet -mod=readonly ./... && go test -mod=readonly ./...)
             echo "::endgroup::"
           done
       # The engine fork has one cryptographic build: classical code is deleted
@@ -142,7 +136,7 @@ jobs:
       # packages and every upstream package (consensus/cometbft/UPSTREAM_TESTS.md),
       # then builds the release set in both builds.
       - name: Engine fork vet, test and production build
-        working-directory: mainnet/node/consensus/cometbft
+        working-directory: node/consensus/cometbft
         run: |
           go vet -mod=readonly ./... github.com/cometbft/cometbft/...
           go test -mod=readonly ./... github.com/cometbft/cometbft/...
@@ -158,12 +152,12 @@ jobs:
             ./cmd/dytallix-validator-key ./cmd/dytallix-operator-rpc ./cmd/dytallix-peer-seed \
             ./cmd/dytallix-host-config
       - name: No quantum-vulnerable crypto in the Go graphs (G35)
-        working-directory: mainnet/node
+        working-directory: node
         run: |
           python3 -B -m unittest discover -s scripts -p test_consensus_go_graph.py
           python3 scripts/check_consensus_go_graph.py --output "$RUNNER_TEMP/consensus-go-graph.json"
       - name: Build engine binaries
-        working-directory: mainnet/node/consensus/cometbft
+        working-directory: node/consensus/cometbft
         run: |
           go build -mod=readonly -o "$RUNNER_TEMP/bin/" ./cmd/...
           go build -mod=readonly -o "$RUNNER_TEMP/bin/cometbft" github.com/cometbft/cometbft/cmd/cometbft
@@ -176,13 +170,13 @@ jobs:
     timeout-minutes: 75
     defaults:
       run:
-        working-directory: mainnet/node
+        working-directory: node
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: mainnet/node/consensus/root-authorization/go.mod
-          cache-dependency-path: mainnet/node/consensus/*/go.sum
+          go-version-file: node/consensus/root-authorization/go.mod
+          cache-dependency-path: node/consensus/*/go.sum
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: 1.88.0
@@ -217,8 +211,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         if: ${{ !cancelled() }}
         with:
-          go-version-file: mainnet/node/consensus/cometbft/go.mod
-          cache-dependency-path: mainnet/node/consensus/*/go.sum
+          go-version-file: node/consensus/cometbft/go.mod
+          cache-dependency-path: node/consensus/*/go.sum
       - name: Build state sync join binaries
         if: ${{ !cancelled() }}
         run: |
@@ -252,7 +246,7 @@ jobs:
     timeout-minutes: 45
     defaults:
       run:
-        working-directory: mainnet/sdk
+        working-directory: sdk
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
@@ -260,7 +254,7 @@ jobs:
           toolchain: 1.88.0
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
-          workspaces: mainnet/sdk
+          workspaces: sdk
       # The vendored protocol types must be the node's exact bytes (E04 gap 8).
       - name: Protocol types match the node
         run: python3 scripts/check_protocol_vendor.py --node-root ../node
