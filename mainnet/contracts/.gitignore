@@ -1,5 +1,0 @@
-target/
-**/target/
-*.wasm
-.DS_Store
-
