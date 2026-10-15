@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dytallix-site-hetzner-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/rickglenn/Developer/Dytallix-mainnet/dytallix-site-launch-dashboard/deploy/preview-hetzner.mjs", "4173"],
+      "port": 4173
+    },
+    {
+      "name": "dytallix-site-preview-mock-data",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/Users/rickglenn/Developer/Dytallix-mainnet/dytallix-site-launch-dashboard/deploy/preview-hetzner.mjs", "4174",
+        "--dashboard", "/private/tmp/claude-501/-Users-rickglenn-Projects-dytallix--claude-worktrees-adoring-austin-bfacab/6e9e21be-59ee-40f0-a27f-a9de37ae4979/scratchpad/mocks/dashboard-newer.json",
+        "--status", "/private/tmp/claude-501/-Users-rickglenn-Projects-dytallix--claude-worktrees-adoring-austin-bfacab/6e9e21be-59ee-40f0-a27f-a9de37ae4979/scratchpad/mocks/status.json"
+      ],
+      "port": 4174
+    }
+  ]
+}
