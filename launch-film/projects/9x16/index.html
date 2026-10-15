@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" class="fmt-portrait">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, height=1920">
+    <title>Dytallix Mainnet Launch (1080x1920)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+@font-face {
+  font-family: "Inter";
+  src: url("assets/fonts/Inter-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("assets/fonts/JetBrainsMono-Variable.ttf") format("truetype");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Tokens: dytallix.com dark theme. Page is pure black so the logo's own
+   black matte is invisible without any blending. */
+:root {
+  --page: #000000;
+  --surface: #0c1116;
+  --raised: #111820;
+  --line: #26313b;
+  --line-strong: #3b4955;
+  --text: #f3f7f8;
+  --muted: #a9b5bd;
+  --subtle: #7f8d96;
+  --accent: #29dfc4;
+  --danger: #f0a0a0;
+  --sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overflow: hidden; background: var(--page); }
+#root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
+  font-kerning: normal;
+}
+
+.scene { position: absolute; inset: 0; }
+.abs { position: absolute; }
+
+/* ---------- type ---------- */
+.headline {
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  color: var(--text);
+  text-wrap: balance;
+}
+.sub {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.mono { font-family: var(--mono); }
+.label {
+  font-family: var(--mono);
+  font-size: var(--label-fs, 16px);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+.idx { color: var(--accent); }
+
+/* colour runs written by the scramble renderer */
+.ct { color: var(--text); }
+.cm { color: var(--muted); }
+.cs { color: var(--subtle); }
+.cr { color: var(--danger); }
+.ca { color: var(--accent); }
+
+/* hidden-at-start pieces: state is authored here, timeline only animates to */
+.in { opacity: 0; transform: translateY(16px); }
+.fade { opacity: 0; }
+
+/* ---------- grid ---------- */
+#grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image:
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px),
+    linear-gradient(to right, var(--line) 1px, transparent 1px);
+  background-size: 80px 80px;
+  background-position: -1px -1px;
+}
+
+/* ---------- hook ---------- */
+.hook-art { position: absolute; }
+.hook-art .half { position: absolute; inset: 0; }
+.art { position: absolute; inset: 0; }
+.art svg.curve { position: absolute; overflow: visible; }
+.curve-axis { stroke: var(--line-strong); stroke-width: 1; fill: none; opacity: 0; }
+.curve-path { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-linecap: butt; }
+.curve-point { fill: var(--page); stroke: var(--text); stroke-width: 1.5; opacity: 0; }
+.keycard {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  padding: 30px 34px 32px;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.keycard .label { margin-bottom: 12px; }
+.keycard .label.second { margin-top: 26px; }
+.khex {
+  font-family: var(--mono);
+  font-size: var(--hex-fs, 20px);
+  line-height: 1.6;
+  white-space: pre;
+  color: var(--muted);
+}
+svg.fracture { position: absolute; left: 0; top: 0; overflow: visible; }
+.fracture-path { stroke: var(--danger); stroke-width: 1.5; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }
+
+/* ---------- threat cards ---------- */
+.cards { position: absolute; display: flex; }
+.card {
+  position: relative;
+  flex: 1 1 0;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  opacity: 0;
+}
+.card-inner { position: absolute; inset: 0; }
+.eyebrow {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: var(--eyebrow-fs, 20px);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtle);
+  white-space: pre;
+}
+.eyebrow .acr { color: var(--text); }
+.eyebrow .tag { color: var(--subtle); }
+.card-h { position: absolute; }
+.card-sub { position: absolute; }
+.diagram { position: absolute; }
+
+/* HNDL diagram */
+.transport { position: absolute; left: 0; right: 0; top: 0; }
+.node {
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--muted);
+  background: var(--page);
+}
+.wire { position: absolute; height: 1px; background: var(--line-strong); transform-origin: 0 50%; }
+.packet {
+  position: absolute;
+  top: 0;
+  height: 30px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: var(--packet-fs, 15px);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  white-space: pre;
+  opacity: 0;
+}
+.tap { position: absolute; opacity: 0; }
+.tap-dot { position: absolute; width: 8px; height: 8px; background: var(--danger); }
+.tap-line { position: absolute; width: 1px; background: var(--danger); opacity: 0.6; }
+.archive { position: absolute; left: 0; right: 0; }
+.arow {
+  position: relative;
+  border: 1px solid var(--line);
+  background: var(--page);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-family: var(--mono);
+  color: var(--muted);
+  white-space: pre;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* timeline strip */
+.tstrip { position: absolute; display: flex; align-items: center; opacity: 0; }
+.tstrip .label { flex: 0 0 auto; }
+.tstrip .t-end { color: var(--subtle); }
+.t-track { position: relative; flex: 1 1 auto; height: 1px; background: var(--line); margin: 0 20px; }
+.t-fill { position: absolute; left: 0; top: 0; height: 1px; width: 100%; background: var(--muted); transform-origin: 0 50%; }
+.t-carriage { position: absolute; left: 0; top: 0; width: 100%; height: 0; }
+.t-marker { position: absolute; top: -9px; left: -1px; width: 2px; height: 19px; background: var(--text); }
+
+/* signed record */
+.record {
+  position: absolute;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+}
+.rec-row { position: absolute; display: flex; align-items: baseline; }
+.rec-row .label { flex: 0 0 auto; }
+.rv { font-family: var(--mono); color: var(--text); white-space: pre; }
+.rv.sig { color: var(--muted); }
+.act-wrap { position: relative; display: inline-block; }
+.act-ul { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger); transform-origin: 0 50%; }
+.badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.badge svg { display: block; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: pre;
+}
+.chip-mldsa { color: var(--accent); border: 1px solid var(--accent); opacity: 0; }
+.chip-rej { position: absolute; color: var(--danger); border: 1px solid var(--danger); opacity: 0; }
+
+/* ---------- logo ---------- */
+/* The supplied PNG is shown untouched: native pixels or an exact integer
+   downscale, cropped only to its own black padding. */
+.logo-crop { position: absolute; overflow: hidden; opacity: 0; }
+.logo-crop img { position: absolute; display: block; max-width: none; }
+
+/* ---------- reveal ---------- */
+.lockup-text { position: absolute; left: 0; right: 0; text-align: center; }
+.rule { position: absolute; height: 1px; background: var(--line-strong); transform-origin: 50% 50%; }
+.spec { font-family: var(--mono); color: var(--muted); letter-spacing: 0.01em; white-space: pre; }
+.spec .acc { color: var(--accent); }
+
+/* ---------- launched ---------- */
+.beat-text { position: absolute; }
+.beat-text .label { font-size: 22px; }
+.beat-visual { position: absolute; }
+.stack { position: absolute; }
+.layer {
+  position: absolute;
+  left: 0; right: 0;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: pre;
+  opacity: 0;
+  transform: translateY(16px);
+}
+.layer .acc { color: var(--accent); }
+.layer .dim { color: var(--muted); }
+.base-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-strong); transform-origin: 0 50%; }
+.base-label { position: absolute; opacity: 0; }
+.spine { position: absolute; width: 2px; background: var(--accent); transform-origin: 50% 100%; }
+
+/* ---------- end card ---------- */
+.end-title { font-weight: 550; letter-spacing: -0.03em; color: var(--text); }
+.end-url { font-family: var(--mono); color: var(--accent); letter-spacing: 0.02em; }
+.end-line { color: var(--subtle); letter-spacing: 0; }
+
+html, body { width: 1080px; height: 1920px; }
+    </style>
+  </head>
+  <body>
+    <!-- Generated by src/build.mjs. Edit the sources there, not this file. -->
+    <div data-hf-id="hf-x1t9" id="root" style="--label-fs:19px;--eyebrow-fs:23px;--hex-fs:22px;--packet-fs:17px" data-composition-id="main" data-start="0" data-duration="30" data-width="1080" data-height="1920">
+      <div data-hf-id="hf-gs5t" id="grid"></div>
+
+    <section data-hf-id="hf-2h78" id="s-hook" class="scene clip" data-start="0" data-duration="4" data-track-index="1">
+      <div data-hf-id="hf-4cw1" class="abs" style="left:72px;top:1180px;width:936px;height:240px;display:flex;align-items:center">
+        <h1 data-hf-id="hf-yyjq" id="hook-h" class="headline in" style="font-size:88px">Classical signatures will not hold.</h1>
+      </div>
+      <div data-hf-id="hf-mpu8" class="hook-art" style="left:72px;top:330px;width:936px;height:800px">
+        <div data-hf-id="hf-uk95" class="half half-a" style="clip-path:polygon(0% 0%, 59.829% 0.000%, 56.410% 16.250%, 62.179% 33.125%, 51.068% 53.750%, 56.197% 76.250%, 47.863% 100.000%, 0% 100%)">
+        <div data-hf-id="hf-y0ev" class="art">
+          <svg data-hf-id="hf-tk0k" class="curve" style="left:218px;top:0px" width="500" height="520" viewBox="0 0 500 520">
+            <path data-hf-id="hf-o2v4" class="curve-axis" d="M0 260.0 H500 M258.5 0 V520" />
+            <path data-hf-id="hf-99ca" class="curve-path" d="M496.2 -0.0 L490.5 9.1 L484.7 17.9 L479.1 26.4 L473.4 34.6 L467.8 42.6 L462.2 50.2 L456.6 57.5 L451.1 64.5 L445.7 71.2 L440.2 77.5 L434.8 83.4 L429.4 89.0 L424.1 94.3 L418.8 99.1 L413.5 103.6 L408.3 107.7 L403.1 111.4 L398.0 114.6 L392.9 117.5 L387.8 120.0 L382.7 122.0 L377.7 123.7 L372.8 125.0 L367.8 126.0 L362.9 126.5 L358.1 126.8 L353.3 126.7 L348.5 126.4 L343.7 125.8 L339.0 124.9 L334.3 123.9 L329.7 122.6 L325.1 121.2 L320.5 119.6 L315.9 117.9 L311.4 116.1 L307.0 114.1 L302.6 112.1 L298.2 110.1 L293.8 108.0 L289.5 105.9 L285.2 103.7 L281.0 101.6 L276.7 99.5 L272.6 97.3 L268.4 95.2 L264.3 93.1 L260.3 91.1 L256.2 89.0 L252.2 87.1 L248.3 85.2 L244.4 83.3 L240.5 81.5 L236.6 79.7 L232.8 78.1 L229.0 76.4 L225.3 74.9 L221.6 73.4 L217.9 72.0 L214.3 70.7 L210.7 69.4 L207.1 68.3 L203.6 67.2 L200.1 66.1 L196.7 65.2 L193.2 64.3 L189.9 63.6 L186.5 62.9 L183.2 62.2 L179.9 61.7 L176.7 61.2 L173.5 60.9 L170.3 60.6 L167.2 60.3 L164.1 60.2 L161.1 60.2 L158.0 60.2 L155.1 60.3 L152.1 60.5 L149.2 60.7 L146.3 61.1 L143.5 61.5 L140.7 62.0 L137.9 62.5 L135.2 63.2 L132.5 63.9 L129.8 64.7 L127.2 65.5 L124.6 66.5 L122.1 67.5 L119.6 68.6 L117.1 69.7 L114.7 70.9 L112.3 72.2 L109.9 73.6 L107.6 75.0 L105.3 76.5 L103.0 78.0 L100.8 79.7 L98.6 81.3 L96.4 83.1 L94.3 84.9 L92.2 86.7 L90.2 88.7 L88.2 90.6 L86.2 92.7 L84.3 94.8 L82.4 96.9 L80.5 99.1 L78.7 101.4 L76.9 103.7 L75.2 106.1 L73.5 108.5 L71.8 111.0 L70.1 113.5 L68.5 116.0 L66.9 118.6 L65.4 121.3 L63.9 124.0 L62.4 126.7 L61.0 129.5 L59.6 132.3 L58.3 135.2 L56.9 138.1 L55.7 141.0 L54.4 144.0 L53.2 147.0 L52.0 150.1 L50.9 153.2 L49.8 156.3 L48.7 159.4 L47.7 162.6 L46.7 165.8 L45.7 169.1 L44.8 172.3 L43.9 175.6 L43.1 179.0 L42.3 182.3 L41.5 185.7 L40.8 189.1 L40.0 192.5 L39.4 195.9 L38.7 199.4 L38.2 202.8 L37.6 206.3 L37.1 209.8 L36.6 213.4 L36.1 216.9 L35.7 220.4 L35.3 224.0 L35.0 227.6 L34.7 231.1 L34.4 234.7 L34.2 238.3 L34.0 241.9 L33.8 245.5 L33.7 249.2 L33.6 252.8 L33.5 256.4 L33.5 260.0 L33.5 263.6 L33.6 267.2 L33.7 270.8 L33.8 274.5 L34.0 278.1 L34.2 281.7 L34.4 285.3 L34.7 288.9 L35.0 292.4 L35.3 296.0 L35.7 299.6 L36.1 303.1 L36.6 306.6 L37.1 310.2 L37.6 313.7 L38.2 317.2 L38.7 320.6 L39.4 324.1 L40.0 327.5 L40.8 330.9 L41.5 334.3 L42.3 337.7 L43.1 341.0 L43.9 344.4 L44.8 347.7 L45.7 350.9 L46.7 354.2 L47.7 357.4 L48.7 360.6 L49.8 363.7 L50.9 366.8 L52.0 369.9 L53.2 373.0 L54.4 376.0 L55.7 379.0 L56.9 381.9 L58.3 384.8 L59.6 387.7 L61.0 390.5 L62.4 393.3 L63.9 396.0 L65.4 398.7 L66.9 401.4 L68.5 404.0 L70.1 406.5 L71.8 409.0 L73.5 411.5 L75.2 413.9 L76.9 416.3 L78.7 418.6 L80.5 420.9 L82.4 423.1 L84.3 425.2 L86.2 427.3 L88.2 429.4 L90.2 431.3 L92.2 433.3 L94.3 435.1 L96.4 436.9 L98.6 438.7 L100.8 440.3 L103.0 442.0 L105.3 443.5 L107.6 445.0 L109.9 446.4 L112.3 447.8 L114.7 449.1 L117.1 450.3 L119.6 451.4 L122.1 452.5 L124.6 453.5 L127.2 454.5 L129.8 455.3 L132.5 456.1 L135.2 456.8 L137.9 457.5 L140.7 458.0 L143.5 458.5 L146.3 458.9 L149.2 459.3 L152.1 459.5 L155.1 459.7 L158.0 459.8 L161.1 459.8 L164.1 459.8 L167.2 459.7 L170.3 459.4 L173.5 459.1 L176.7 458.8 L179.9 458.3 L183.2 457.8 L186.5 457.1 L189.9 456.4 L193.2 455.7 L196.7 454.8 L200.1 453.9 L203.6 452.8 L207.1 451.7 L210.7 450.6 L214.3 449.3 L217.9 448.0 L221.6 446.6 L225.3 445.1 L229.0 443.6 L232.8 441.9 L236.6 440.3 L240.5 438.5 L244.4 436.7 L248.3 434.8 L252.2 432.9 L256.2 431.0 L260.3 428.9 L264.3 426.9 L268.4 424.8 L272.6 422.7 L276.7 420.5 L281.0 418.4 L285.2 416.3 L289.5 414.1 L293.8 412.0 L298.2 409.9 L302.6 407.9 L307.0 405.9 L311.4 403.9 L315.9 402.1 L320.5 400.4 L325.1 398.8 L329.7 397.4 L334.3 396.1 L339.0 395.1 L343.7 394.2 L348.5 393.6 L353.3 393.3 L358.1 393.2 L362.9 393.5 L367.8 394.0 L372.8 395.0 L377.7 396.3 L382.7 398.0 L387.8 400.0 L392.9 402.5 L398.0 405.4 L403.1 408.6 L408.3 412.3 L413.5 416.4 L418.8 420.9 L424.1 425.7 L429.4 431.0 L434.8 436.6 L440.2 442.5 L445.7 448.8 L451.1 455.5 L456.6 462.5 L462.2 469.8 L467.8 477.4 L473.4 485.4 L479.1 493.6 L484.7 502.1 L490.5 510.9 L496.2 520.0" style="stroke-dasharray:1338;stroke-dashoffset:1338" />
+            <circle data-hf-id="hf-abiw" class="curve-point" cx="326.4" cy="121.6" r="6" />
+          </svg>
+          <div data-hf-id="hf-ccfo" class="keycard" style="left:124px;top:500px">
+            <div data-hf-id="hf-70km" class="label" data-layout-allow-overlap="">Public key</div>
+            <div data-hf-id="hf-vzis" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-jfbo" class="cm">31 b0 d3 84 45 56 df 50 7f 5d 01 f8 7c 03 66 36</span></div><div data-hf-id="hf-qw8c" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-dlpw" class="cm">e6 c8 c1 40 90 63 5f a5 8a 7b d8 c6 f5 35 1b 72</span></div>
+            <div data-hf-id="hf-seys" class="label second" data-layout-allow-overlap="">Private key</div>
+            <div data-hf-id="hf-5rv9" class="khex priv" data-row="0" data-layout-allow-overlap=""><span data-hf-id="hf-899p" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div><div data-hf-id="hf-2slo" class="khex priv" data-row="1" data-layout-allow-overlap=""><span data-hf-id="hf-eu8x" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div>
+          </div>
+        </div></div>
+        <div data-hf-id="hf-ei8p" class="half half-b" style="clip-path:polygon(59.829% 0.000%, 100% 0%, 100% 100%, 47.863% 100.000%, 56.197% 76.250%, 51.068% 53.750%, 62.179% 33.125%, 56.410% 16.250%, 59.829% 0.000%)">
+        <div data-hf-id="hf-kadz" class="art">
+          <svg data-hf-id="hf-xqr0" class="curve" style="left:218px;top:0px" width="500" height="520" viewBox="0 0 500 520">
+            <path data-hf-id="hf-3a0o" class="curve-axis" d="M0 260.0 H500 M258.5 0 V520" />
+            <path data-hf-id="hf-37f2" class="curve-path" d="M496.2 -0.0 L490.5 9.1 L484.7 17.9 L479.1 26.4 L473.4 34.6 L467.8 42.6 L462.2 50.2 L456.6 57.5 L451.1 64.5 L445.7 71.2 L440.2 77.5 L434.8 83.4 L429.4 89.0 L424.1 94.3 L418.8 99.1 L413.5 103.6 L408.3 107.7 L403.1 111.4 L398.0 114.6 L392.9 117.5 L387.8 120.0 L382.7 122.0 L377.7 123.7 L372.8 125.0 L367.8 126.0 L362.9 126.5 L358.1 126.8 L353.3 126.7 L348.5 126.4 L343.7 125.8 L339.0 124.9 L334.3 123.9 L329.7 122.6 L325.1 121.2 L320.5 119.6 L315.9 117.9 L311.4 116.1 L307.0 114.1 L302.6 112.1 L298.2 110.1 L293.8 108.0 L289.5 105.9 L285.2 103.7 L281.0 101.6 L276.7 99.5 L272.6 97.3 L268.4 95.2 L264.3 93.1 L260.3 91.1 L256.2 89.0 L252.2 87.1 L248.3 85.2 L244.4 83.3 L240.5 81.5 L236.6 79.7 L232.8 78.1 L229.0 76.4 L225.3 74.9 L221.6 73.4 L217.9 72.0 L214.3 70.7 L210.7 69.4 L207.1 68.3 L203.6 67.2 L200.1 66.1 L196.7 65.2 L193.2 64.3 L189.9 63.6 L186.5 62.9 L183.2 62.2 L179.9 61.7 L176.7 61.2 L173.5 60.9 L170.3 60.6 L167.2 60.3 L164.1 60.2 L161.1 60.2 L158.0 60.2 L155.1 60.3 L152.1 60.5 L149.2 60.7 L146.3 61.1 L143.5 61.5 L140.7 62.0 L137.9 62.5 L135.2 63.2 L132.5 63.9 L129.8 64.7 L127.2 65.5 L124.6 66.5 L122.1 67.5 L119.6 68.6 L117.1 69.7 L114.7 70.9 L112.3 72.2 L109.9 73.6 L107.6 75.0 L105.3 76.5 L103.0 78.0 L100.8 79.7 L98.6 81.3 L96.4 83.1 L94.3 84.9 L92.2 86.7 L90.2 88.7 L88.2 90.6 L86.2 92.7 L84.3 94.8 L82.4 96.9 L80.5 99.1 L78.7 101.4 L76.9 103.7 L75.2 106.1 L73.5 108.5 L71.8 111.0 L70.1 113.5 L68.5 116.0 L66.9 118.6 L65.4 121.3 L63.9 124.0 L62.4 126.7 L61.0 129.5 L59.6 132.3 L58.3 135.2 L56.9 138.1 L55.7 141.0 L54.4 144.0 L53.2 147.0 L52.0 150.1 L50.9 153.2 L49.8 156.3 L48.7 159.4 L47.7 162.6 L46.7 165.8 L45.7 169.1 L44.8 172.3 L43.9 175.6 L43.1 179.0 L42.3 182.3 L41.5 185.7 L40.8 189.1 L40.0 192.5 L39.4 195.9 L38.7 199.4 L38.2 202.8 L37.6 206.3 L37.1 209.8 L36.6 213.4 L36.1 216.9 L35.7 220.4 L35.3 224.0 L35.0 227.6 L34.7 231.1 L34.4 234.7 L34.2 238.3 L34.0 241.9 L33.8 245.5 L33.7 249.2 L33.6 252.8 L33.5 256.4 L33.5 260.0 L33.5 263.6 L33.6 267.2 L33.7 270.8 L33.8 274.5 L34.0 278.1 L34.2 281.7 L34.4 285.3 L34.7 288.9 L35.0 292.4 L35.3 296.0 L35.7 299.6 L36.1 303.1 L36.6 306.6 L37.1 310.2 L37.6 313.7 L38.2 317.2 L38.7 320.6 L39.4 324.1 L40.0 327.5 L40.8 330.9 L41.5 334.3 L42.3 337.7 L43.1 341.0 L43.9 344.4 L44.8 347.7 L45.7 350.9 L46.7 354.2 L47.7 357.4 L48.7 360.6 L49.8 363.7 L50.9 366.8 L52.0 369.9 L53.2 373.0 L54.4 376.0 L55.7 379.0 L56.9 381.9 L58.3 384.8 L59.6 387.7 L61.0 390.5 L62.4 393.3 L63.9 396.0 L65.4 398.7 L66.9 401.4 L68.5 404.0 L70.1 406.5 L71.8 409.0 L73.5 411.5 L75.2 413.9 L76.9 416.3 L78.7 418.6 L80.5 420.9 L82.4 423.1 L84.3 425.2 L86.2 427.3 L88.2 429.4 L90.2 431.3 L92.2 433.3 L94.3 435.1 L96.4 436.9 L98.6 438.7 L100.8 440.3 L103.0 442.0 L105.3 443.5 L107.6 445.0 L109.9 446.4 L112.3 447.8 L114.7 449.1 L117.1 450.3 L119.6 451.4 L122.1 452.5 L124.6 453.5 L127.2 454.5 L129.8 455.3 L132.5 456.1 L135.2 456.8 L137.9 457.5 L140.7 458.0 L143.5 458.5 L146.3 458.9 L149.2 459.3 L152.1 459.5 L155.1 459.7 L158.0 459.8 L161.1 459.8 L164.1 459.8 L167.2 459.7 L170.3 459.4 L173.5 459.1 L176.7 458.8 L179.9 458.3 L183.2 457.8 L186.5 457.1 L189.9 456.4 L193.2 455.7 L196.7 454.8 L200.1 453.9 L203.6 452.8 L207.1 451.7 L210.7 450.6 L214.3 449.3 L217.9 448.0 L221.6 446.6 L225.3 445.1 L229.0 443.6 L232.8 441.9 L236.6 440.3 L240.5 438.5 L244.4 436.7 L248.3 434.8 L252.2 432.9 L256.2 431.0 L260.3 428.9 L264.3 426.9 L268.4 424.8 L272.6 422.7 L276.7 420.5 L281.0 418.4 L285.2 416.3 L289.5 414.1 L293.8 412.0 L298.2 409.9 L302.6 407.9 L307.0 405.9 L311.4 403.9 L315.9 402.1 L320.5 400.4 L325.1 398.8 L329.7 397.4 L334.3 396.1 L339.0 395.1 L343.7 394.2 L348.5 393.6 L353.3 393.3 L358.1 393.2 L362.9 393.5 L367.8 394.0 L372.8 395.0 L377.7 396.3 L382.7 398.0 L387.8 400.0 L392.9 402.5 L398.0 405.4 L403.1 408.6 L408.3 412.3 L413.5 416.4 L418.8 420.9 L424.1 425.7 L429.4 431.0 L434.8 436.6 L440.2 442.5 L445.7 448.8 L451.1 455.5 L456.6 462.5 L462.2 469.8 L467.8 477.4 L473.4 485.4 L479.1 493.6 L484.7 502.1 L490.5 510.9 L496.2 520.0" style="stroke-dasharray:1338;stroke-dashoffset:1338" />
+            <circle data-hf-id="hf-3ghc" class="curve-point" cx="326.4" cy="121.6" r="6" />
+          </svg>
+          <div data-hf-id="hf-ooi4" class="keycard" style="left:124px;top:500px">
+            <div data-hf-id="hf-gzl6" class="label" data-layout-allow-overlap="">Public key</div>
+            <div data-hf-id="hf-ppb9" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-7xik" class="cm">31 b0 d3 84 45 56 df 50 7f 5d 01 f8 7c 03 66 36</span></div><div data-hf-id="hf-q3ma" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-e5vw" class="cm">e6 c8 c1 40 90 63 5f a5 8a 7b d8 c6 f5 35 1b 72</span></div>
+            <div data-hf-id="hf-7v98" class="label second" data-layout-allow-overlap="">Private key</div>
+            <div data-hf-id="hf-5mkp" class="khex priv" data-row="0" data-layout-allow-overlap=""><span data-hf-id="hf-g160" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div><div data-hf-id="hf-8eas" class="khex priv" data-row="1" data-layout-allow-overlap=""><span data-hf-id="hf-fmuz" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div>
+          </div>
+        </div></div>
+        <svg data-hf-id="hf-7ndn" class="fracture" width="936" height="800" viewBox="0 0 936 800">
+          <polyline data-hf-id="hf-dhfy" class="fracture-path" points="560,0 528,130 582,265 478,430 526,610 448,800" style="stroke-dasharray:868;stroke-dashoffset:868" />
+        </svg>
+      </div>
+    </section>
+
+    <section data-hf-id="hf-d0tc" id="s-threats" class="scene clip" data-start="4" data-duration="8" data-track-index="1">
+      <div data-hf-id="hf-8znp" class="cards" style="left:72px;top:256px;width:936px;height:1328px;flex-direction:column;gap:32px">
+        
+      <article data-hf-id="hf-mkvx" class="card" id="card-hndl" style="width:936px;height:648px;flex:0 0 auto">
+        <div data-hf-id="hf-yx39" class="eyebrow" style="left:40px;top:40px"><span data-hf-id="hf-3mph" class="idx">01</span>  <span data-hf-id="hf-m3yn" class="acr">HNDL</span>  ·  <span data-hf-id="hf-xxdf" class="tag">Confidentiality</span></div>
+        <h2 data-hf-id="hf-r6jn" class="card-h headline in" style="left:40px;top:90px;width:856px;font-size:64px">Harvest now,<br data-hf-id="hf-x5px">decrypt later.</h2>
+        <p data-hf-id="hf-8487" class="card-sub sub in" style="left:40px;top:240px;width:856px;font-size:32px">Stolen ciphertext waits for Q-Day.</p>
+        <div data-hf-id="hf-xj1a" class="diagram" style="left:40px;top:318px;width:856px;height:244px">
+          <div data-hf-id="hf-5exf" class="transport" style="height:30px">
+            <div data-hf-id="hf-p5yp" class="node fade" style="left:0;top:8px"></div>
+            <div data-hf-id="hf-ibdw" class="wire" style="left:14px;top:15px;width:828px"></div>
+            <div data-hf-id="hf-pd7g" class="node fade" style="right:0;top:8px"></div>
+            <div data-hf-id="hf-6dbv" class="tap" style="left:0;top:0;width:100%;height:100%">
+              <div data-hf-id="hf-b1l5" class="tap-dot" style="left:424px;top:11px;width:8px;height:8px"></div>
+              <div data-hf-id="hf-ckxa" class="tap-line" style="left:427.5px;top:19px;height:45px"></div>
+            </div>
+            <div data-hf-id="hf-zu3l" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">4dbc 5762</div>
+            <div data-hf-id="hf-d363" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">691c a447</div>
+            <div data-hf-id="hf-ddy6" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">90df c372</div>
+            <div data-hf-id="hf-wv42" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">aa2e 752c</div>
+            <div data-hf-id="hf-uq7f" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">20b7 e021</div>
+            <div data-hf-id="hf-u53q" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">1ac4 6c51</div>
+            <div data-hf-id="hf-6mwp" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">0097 adb2</div>
+            <div data-hf-id="hf-p8t4" class="packet" style="width:120px;justify-content:center;left:calc(var(--p, 0) * (100% - 120px))">f050 92f0</div>
+          </div>
+          <div data-hf-id="hf-5xc5" class="archive" style="top:64px">
+            <div data-hf-id="hf-uf0h" class="arow" data-row="0" style="height:40px;margin-bottom:6px;font-size:20px"><span data-hf-id="hf-brcj" class="atext"><span data-hf-id="hf-lu64" class="cm">fd 30 89 1c 6f 65 ba ad bc 45 f3 a6 c8 19 53 8f c4 4e f4 29</span></span></div>
+            <div data-hf-id="hf-v5zi" class="arow" data-row="1" style="height:40px;margin-bottom:6px;font-size:20px"><span data-hf-id="hf-a7bn" class="atext"><span data-hf-id="hf-97jz" class="cm">b4 24 31 05 07 62 2e e2 95 80 0d ac 6b d7 2a d6 70 a4 bc da</span></span></div>
+            <div data-hf-id="hf-rm77" class="arow" data-row="2" style="height:40px;margin-bottom:6px;font-size:20px"><span data-hf-id="hf-9t0m" class="atext"><span data-hf-id="hf-iof9" class="cm">c7 93 45 4a db c3 09 70 16 4c 56 bf 38 03 b3 4c 3a f3 2e 32</span></span></div>
+            <div data-hf-id="hf-2m9q" class="arow" data-row="3" style="height:40px;margin-bottom:0px;font-size:20px"><span data-hf-id="hf-9epl" class="atext"><span data-hf-id="hf-95yj" class="cm">be ef bd d5 58 e1 ef 57 d3 ad 1c 59 6c 89 c3 12 d8 14 32 fb</span></span></div>
+          </div>
+        </div>
+        <div data-hf-id="hf-ne3w" class="tstrip" style="left:40px;top:590px;width:856px;height:36px">
+        <span data-hf-id="hf-t27j" class="label">Now</span>
+        <div data-hf-id="hf-tq8m" class="t-track"><div data-hf-id="hf-xadq" class="t-fill"></div><div data-hf-id="hf-l0b7" class="t-carriage"><div data-hf-id="hf-dg5v" class="t-marker"></div></div></div>
+        <span data-hf-id="hf-xv27" class="label t-end">Q-Day</span>
+      </div>
+      </article>
+        
+      <article data-hf-id="hf-d42b" class="card" id="card-tnfl" style="width:936px;height:648px;flex:0 0 auto">
+        <div data-hf-id="hf-1sq8" class="eyebrow" style="left:40px;top:40px"><span data-hf-id="hf-zuu2" class="idx" style="color:var(--subtle)">02</span><span data-hf-id="hf-6676" class="eyebrow-rest fade">  <span data-hf-id="hf-vlb5" class="acr">TNFL</span>  ·  <span data-hf-id="hf-9zz6" class="tag">Authenticity</span></span></div>
+        <h2 data-hf-id="hf-zi5w" class="card-h headline in" style="left:40px;top:90px;width:856px;font-size:64px">Trust now,<br data-hf-id="hf-rsrt">forge later.</h2>
+        <p data-hf-id="hf-nqzx" class="card-sub sub in" style="left:40px;top:240px;width:856px;font-size:32px">Broken signatures become forged approvals.</p>
+        <div data-hf-id="hf-8sqq" class="diagram" style="left:40px;top:318px;width:856px;height:244px"><div data-hf-id="hf-3sok" class="record in" id="rec-tnfl" style="left:0px;top:0px;width:856px;height:244px">
+        <div data-hf-id="hf-3f4p" class="badge" style="right:30px;top:24px;height:34px;font-size:var(--label-fs)"><svg data-hf-id="hf-lynh" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path data-hf-id="hf-jik8" d="M2.5 8.5 L6.5 12 L13.5 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" /></svg><span data-hf-id="hf-8q19">Valid</span></div>
+        <div data-hf-id="hf-0hgi" class="rec-row" style="left:30px;top:26px;width:796px"><span data-hf-id="hf-0d03" class="label" style="width:200px">Signer</span><span data-hf-id="hf-rkie" class="rv" style="font-size:21px;line-height:30px">4bfa 542b 2d62 … 941e</span></div>
+        <div data-hf-id="hf-rro7" class="rec-row" style="left:30px;top:74px;width:796px"><span data-hf-id="hf-jo7z" class="label" style="width:200px">Action</span><span data-hf-id="hf-rjd8" class="act-wrap"><span data-hf-id="hf-1fxn" class="rv act" style="font-size:21px;line-height:30px"><span data-hf-id="hf-ib3w" class="ct">release → A</span></span><span data-hf-id="hf-msdv" class="act-ul" style="bottom:-2px"></span></span></div>
+        <div data-hf-id="hf-y1b8" class="rec-row" style="left:30px;top:122px;width:796px;align-items:flex-start"><span data-hf-id="hf-s49h" class="label" style="width:200px;line-height:30px">Signature</span><span data-hf-id="hf-kusg" class="rv sig" style="font-size:21px;line-height:30px"><span data-hf-id="hf-qqq4" class="sig-l" data-row="0" style="display:block"><span data-hf-id="hf-weq0" class="cm">57 e0 cb 04 54 ac 19 33 46 a7 63 29</span></span><span data-hf-id="hf-qhcl" class="sig-l" data-row="1" style="display:block"><span data-hf-id="hf-0axb" class="cm">73 09 5d 13 2f 03 5a 09 ea 66 10 c0</span></span><span data-hf-id="hf-ls7i" class="sig-l" data-row="2" style="display:block"><span data-hf-id="hf-4afv" class="cm">50 08 5f 39 c0 82 31 c5 21 a8 0d 38</span></span></span></div>
+      </div>
+        </div>
+        <div data-hf-id="hf-6x8k" class="tstrip" style="left:40px;top:590px;width:856px;height:36px">
+        <span data-hf-id="hf-ha4v" class="label">Now</span>
+        <div data-hf-id="hf-ta7u" class="t-track"><div data-hf-id="hf-a9xu" class="t-fill"></div><div data-hf-id="hf-t1df" class="t-carriage"><div data-hf-id="hf-f7n7" class="t-marker"></div></div></div>
+        <span data-hf-id="hf-9gfz" class="label t-end">Q-Day</span>
+      </div>
+      </article>
+      </div>
+    </section>
+
+    <section data-hf-id="hf-djmr" id="s-reveal" class="scene clip" data-start="12" data-duration="6" data-track-index="1">
+      <div data-hf-id="hf-l9cr" class="logo-crop" id="logo-reveal" style="left:390px;top:560px;width:300px;height:345px;transform:translateY(12px)">
+        <img data-hf-id="hf-ex1v" data-layout-allow-overflow="" src="assets/dytallix-logo.png" alt="Dytallix" width="500" height="500" style="left:-105px;top:-80px;width:500px;height:500px">
+      </div>
+      <h1 data-hf-id="hf-hcmr" id="reveal-h" class="headline in lockup-text" style="top:953px;font-size:88px;margin:0 auto;width:820px;left:130px;right:auto">Dytallix mainnet<br data-hf-id="hf-szow">is live.</h1>
+      <p data-hf-id="hf-b3mi" id="reveal-sub" class="sub in lockup-text" style="top:1158px;font-size:38px">A PQC-native Layer 1.</p>
+      <div data-hf-id="hf-gqzz" id="reveal-rule" class="rule" style="left:260px;top:1241px;width:560px"></div>
+      <p data-hf-id="hf-4e35" id="reveal-spec" class="spec in lockup-text" style="top:1271px;font-size:30px">NIST <span data-hf-id="hf-ib9k" class="acc">ML-DSA</span> signing. <span data-hf-id="hf-mwwf" class="acc">ML-KEM</span> transport.</p>
+    </section>
+
+    <section data-hf-id="hf-p4vo" id="s-launched" class="scene clip" data-start="18" data-duration="6" data-track-index="1">
+      <div data-hf-id="hf-83j9" id="beat-1" class="abs" style="inset:0">
+        
+        <div data-hf-id="hf-grog" class="beat-text" style="left:72px;top:900px;width:936px;height:420px;display:flex;flex-direction:column;justify-content:flex-start;gap:26px">
+          <div data-hf-id="hf-ivi8" id="b1-idx" class="label idx in">01</div>
+          <h2 data-hf-id="hf-jp5m" id="b1-h" class="headline in" style="font-size:84px">Post-quantum authorization</h2>
+          <p data-hf-id="hf-c1cq" id="b1-sub" class="sub in" style="font-size:36px">TNFL addressed at genesis.</p>
+        </div>
+        <div data-hf-id="hf-in1t" id="b1-visual" class="beat-visual" style="left:72px;top:440px;width:936px;height:344px">
+          <div data-hf-id="hf-5i1q" class="record in" id="rec-launch" style="left:0px;top:0px;width:936px;height:260px">
+        <div data-hf-id="hf-fygd" class="badge" style="right:30px;top:24px;height:34px;font-size:var(--label-fs)"><svg data-hf-id="hf-9t29" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path data-hf-id="hf-tvv4" d="M2.5 8.5 L6.5 12 L13.5 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" /></svg><span data-hf-id="hf-5729">Valid</span></div>
+        <div data-hf-id="hf-q4wz" class="rec-row" style="left:30px;top:26px;width:876px"><span data-hf-id="hf-bfoz" class="label" style="width:200px">Signer</span><span data-hf-id="hf-13sq" class="rv" style="font-size:21px;line-height:30px">4bfa 542b 2d62 … 941e</span></div>
+        <div data-hf-id="hf-4nle" class="rec-row" style="left:30px;top:74px;width:876px"><span data-hf-id="hf-dtr3" class="label" style="width:200px">Action</span><span data-hf-id="hf-djac" class="act-wrap"><span data-hf-id="hf-yzm3" class="rv act" style="font-size:21px;line-height:30px"><span data-hf-id="hf-kdh0" class="ct">release → A</span></span></span><span data-hf-id="hf-dp71" class="chip chip-rej" style="left:362.6px;top:0;height:30px;padding:0 12px;font-size:var(--label-fs)">Rejected</span></div>
+        <div data-hf-id="hf-ez9v" class="rec-row" style="left:30px;top:122px;width:876px;align-items:flex-start"><span data-hf-id="hf-02bt" class="label" style="width:200px;line-height:30px">Signature<br data-hf-id="hf-sldv"><span data-hf-id="hf-ck0j" class="chip chip-mldsa" style="margin-top:6px;height:28px;padding:0 10px;font-size:calc(var(--label-fs) - 2px)">ML-DSA</span></span><span data-hf-id="hf-aw9k" class="rv sig" style="font-size:21px;line-height:30px"><span data-hf-id="hf-3uuc" class="sig-l" data-row="0" style="display:block"><span data-hf-id="hf-w4jk" class="cm">57 e0 cb 04 54 ac 19 33 46 a7 63 29</span></span><span data-hf-id="hf-vbm1" class="sig-l" data-row="1" style="display:block"><span data-hf-id="hf-spdb" class="cm">73 09 5d 13 2f 03 5a 09 ea 66 10 c0</span></span><span data-hf-id="hf-ad5e" class="sig-l" data-row="2" style="display:block"><span data-hf-id="hf-gxsr" class="cm">50 08 5f 39 c0 82 31 c5 21 a8 0d 38</span></span></span></div>
+      </div>
+          <div data-hf-id="hf-nwcb" class="tstrip" style="left:0px;top:304px;width:936px;height:40px">
+        <span data-hf-id="hf-gs7l" class="label">Genesis</span>
+        <div data-hf-id="hf-toiv" class="t-track"><div data-hf-id="hf-ao8v" class="t-fill"></div><div data-hf-id="hf-sn2e" class="t-carriage"><div data-hf-id="hf-etc6" class="t-marker"></div></div></div>
+        <span data-hf-id="hf-924y" class="label t-end">Q-Day</span>
+      </div>
+        </div>
+      </div>
+      <div data-hf-id="hf-0ahq" id="beat-2" class="abs" style="inset:0">
+        
+        <div data-hf-id="hf-4cgo" class="beat-text" style="left:72px;top:900px;width:936px;height:420px;display:flex;flex-direction:column;justify-content:flex-start;gap:26px">
+          <div data-hf-id="hf-ihpi" id="b2-idx" class="label idx in">02</div>
+          <h2 data-hf-id="hf-78ib" id="b2-h" class="headline in" style="font-size:84px">Native PQC stack</h2>
+          <p data-hf-id="hf-xsoz" id="b2-sub" class="sub in" style="font-size:36px">Not an ECC retrofit.</p>
+        </div>
+        <div data-hf-id="hf-lys8" id="stack" class="stack" style="left:72px;top:440px;width:936px;height:308px">
+          <div data-hf-id="hf-8n8i" class="layer l2" style="left:0px;top:0px;height:110px;font-size:26px;padding-left:84px"><span data-hf-id="hf-spbj" class="acc">ML-KEM</span><span data-hf-id="hf-eizv" class="dim">  ·  Transport</span></div>
+          <div data-hf-id="hf-0j72" class="layer l1" style="left:0px;top:126px;height:110px;font-size:26px;padding-left:84px"><span data-hf-id="hf-qbk0" class="acc">ML-DSA</span><span data-hf-id="hf-fc25" class="dim">  ·  Signing</span></div>
+          <div data-hf-id="hf-sde5" class="base-line" style="top:268px"></div>
+          <div data-hf-id="hf-9sih" class="label base-label" style="left:0;top:284px">Genesis</div>
+          <div data-hf-id="hf-0laj" class="spine" style="left:41px;top:0px;height:268px"></div>
+        </div>
+      </div>
+    </section>
+
+    <section data-hf-id="hf-rwc8" id="s-end" class="scene clip" data-start="24" data-duration="6" data-track-index="1">
+      <div data-hf-id="hf-nsac" class="logo-crop" id="logo-end" style="left:420px;top:640px;width:240px;height:276px;transform:translateY(12px)">
+        <img data-hf-id="hf-tj43" data-layout-allow-overflow="" src="assets/dytallix-logo.png" alt="Dytallix" width="400" height="400" style="left:-84px;top:-64px;width:400px;height:400px">
+      </div>
+      <h1 data-hf-id="hf-fbo1" id="end-title" class="end-title in lockup-text" style="top:960px;font-size:84px;line-height:1.1">Dytallix Mainnet</h1>
+      <p data-hf-id="hf-3nd1" id="end-url" class="end-url in lockup-text" style="top:1078px;font-size:36px">www.dytallix.com</p>
+      <p data-hf-id="hf-8irf" id="end-line" class="end-line sub in lockup-text" style="top:1155px;font-size:30px">Built for the Quantum Era.</p>
+    </section>
+    </div>
+    <script>
+      window.FILM_DATA = {"pub":["31 b0 d3 84 45 56 df 50 7f 5d 01 f8 7c 03 66 36","e6 c8 c1 40 90 63 5f a5 8a 7b d8 c6 f5 35 1b 72"],"priv":["96 15 3d f0 dc fe 2d d5 6c 0a 0f 32 f2 4d a9 62","60 92 60 f9 67 7e 8d d3 29 81 a8 cd 64 80 27 fe"],"privMask":["•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••","•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••"],"packets":["4dbc 5762","691c a447","90df c372","aa2e 752c","20b7 e021","1ac4 6c51","0097 adb2","f050 92f0"],"packetStart":[4.25,4.59,4.93,5.27,5.61,5.95,6.29,6.63],"packetTravel":1.1,"arch":["fd 30 89 1c 6f 65 ba ad bc 45 f3 a6 c8 19 53 8f c4 4e f4 29","b4 24 31 05 07 62 2e e2 95 80 0d ac 6b d7 2a d6 70 a4 bc da","c7 93 45 4a db c3 09 70 16 4c 56 bf 38 03 b3 4c 3a f3 2e 32","be ef bd d5 58 e1 ef 57 d3 ad 1c 59 6c 89 c3 12 d8 14 32 fb"],"plain":["contract terms","wallet backup","session keys","private message"],"signer":"4bfa 542b 2d62 … 941e","actA":"release → A","actX":"release → X","sigA":["57 e0 cb 04 54 ac 19 33 46 a7 63 29","73 09 5d 13 2f 03 5a 09 ea 66 10 c0","50 08 5f 39 c0 82 31 c5 21 a8 0d 38"],"sigB":["ce 2d 1e 00 de 39 5d e3 d1 23 54 f7","86 58 b6 f7 b9 53 bd eb ed 1e c7 72","2e 01 3a 36 2b fc 46 60 2b 14 a7 39"],"rowAt":[5.14,5.48,5.82,6.16]};
+    </script>
+    <script>
+// Dytallix mainnet launch film: one paused root timeline.
+// Opacity/transform motion is plain GSAP. Character-level work (key recovery,
+// decryption, forgery) is a pure function of time, render(t), driven by a clock
+// tween and by the runtime's hf-seek event, so any frame renders identically
+// on a cold seek.
+(function () {
+  const D = window.FILM_DATA;
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+  const GLYPHS = "0123456789abcdef";
+  function hash(a, b, c) {
+    let x = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35) ^ Math.imul(c + 0x27d4eb2f, 0x165667b1);
+    x ^= x >>> 15;
+    x = Math.imul(x, 0x2c1b3c6d);
+    x ^= x >>> 12;
+    return x >>> 0;
+  }
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+  const win = (t, a, b) => clamp01((t - a) / (b - a));
+
+  // Left-to-right resolve from `from` to `to`. Characters in flight show a
+  // hex glyph keyed on (seed, index, tick). o.all scrambles unchanged chars too.
+  function scrambleHTML(from, to, p, seed, tick, o) {
+    const n = Math.max(from.length, to.length);
+    let out = "";
+    let cur = null;
+    let buf = "";
+    const push = (cls, ch) => {
+      if (cls !== cur) {
+        if (cur !== null) out += '<span class="' + cur + '">' + esc(buf) + "</span>";
+        cur = cls;
+        buf = "";
+      }
+      buf += ch;
+    };
+    for (let i = 0; i < n; i++) {
+      const f = i < from.length ? from[i] : " ";
+      const g = i < to.length ? to[i] : " ";
+      const a = (i / n) * 0.55;
+      const b = a + 0.45;
+      const moving = o.all ? f !== " " || g !== " " : f !== g;
+      if (p >= 1 || p >= b) push(o.to, g);
+      else if (p <= 0 || p <= a || !moving) push(o.from, f);
+      else push(o.mid, GLYPHS[hash(seed, i, tick) % GLYPHS.length]);
+    }
+    if (cur !== null) out += '<span class="' + cur + '">' + esc(buf) + "</span>";
+    return out;
+  }
+  function put(els, html) {
+    for (const el of els) {
+      if (el.__h !== html) {
+        el.innerHTML = html;
+        el.__h = html;
+      }
+    }
+  }
+
+  const privEls = [0, 1].map((r) => $$('.khex.priv[data-row="' + r + '"]'));
+  const packets = $$(".packet");
+  const archEls = $$(".arow .atext");
+  const act1 = $$("#rec-tnfl .act");
+  const sig1 = [0, 1, 2].map((r) => $$('#rec-tnfl .sig-l[data-row="' + r + '"]'));
+  const act2 = $$("#rec-launch .act");
+
+  let last = -1;
+  function render(t) {
+    t = Math.max(0, Math.min(30, t));
+    if (t === last) return;
+    last = t;
+    const tick = Math.floor(t * 15 + 1e-6);
+
+    // 0-4 hook: the masked private key is derived from the public key.
+    for (let r = 0; r < 2; r++) {
+      const p = win(t, 1.2 + r * 0.6, 1.8 + r * 0.6);
+      put(privEls[r], scrambleHTML(D.privMask[r], D.priv[r], p, 11 + r, tick, { from: "cs", mid: "cm", to: "cr" }));
+    }
+
+    // 4-8 HNDL: ciphertext packets cross the wire; the archive decrypts at Q-Day.
+    packets.forEach((el, k) => {
+      const p = (t - D.packetStart[k]) / D.packetTravel;
+      if (p <= 0 || p >= 1) {
+        el.style.opacity = "0";
+      } else {
+        el.style.opacity = String(Math.min(1, p / 0.08, (1 - p) / 0.08));
+        el.style.setProperty("--p", p.toFixed(4));
+      }
+    });
+    archEls.forEach((el, r) => {
+      const p = win(t, 7.0 + 0.08 * r, 7.45 + 0.08 * r);
+      put([el], scrambleHTML(D.arch[r], D.plain[r], p, 31 + r, tick, { from: "cm", mid: "cm", to: "cr" }));
+    });
+
+    // 8-12 TNFL: the approved action and its signature are rewritten.
+    put(act1, scrambleHTML(D.actA, D.actX, win(t, 10.0, 10.4), 51, tick, { from: "ct", mid: "cm", to: "cr", all: true }));
+    for (let r = 0; r < 3; r++) {
+      put(sig1[r], scrambleHTML(D.sigA[r], D.sigB[r], win(t, 10.1 + 0.1 * r, 10.5 + 0.1 * r), 61 + r, tick, { from: "cm", mid: "cm", to: "cm" }));
+    }
+
+    // 18-21 launched: the same rewrite is attempted and fails.
+    put(act2, scrambleHTML(D.actA, D.actA, win(t, 20.0, 20.35), 71, tick, { from: "ct", mid: "cr", to: "ct", all: true }));
+  }
+
+  // ---------------------------------------------------------------- timeline
+  const tl = gsap.timeline({ paused: true });
+  const OUT = "power3.out";
+  const IO = "power2.inOut";
+  const rise = (sel, at, dur) => tl.to(sel, { opacity: 1, y: 0, duration: dur || 0.6, ease: OUT }, at);
+  const fadeIn = (sel, at, dur, to) => tl.to(sel, { opacity: to == null ? 1 : to, duration: dur || 0.4, ease: OUT }, at);
+  const fadeOut = (sel, at, dur) => tl.to(sel, { opacity: 0, duration: dur || 0.4, ease: "power2.in" }, at);
+  const draw = (sel, at, dur, ease) => tl.to(sel, { strokeDashoffset: 0, duration: dur, ease: ease || IO }, at);
+  // Scale draws are fromTo so GSAP owns the whole transform (no CSS transform to fight).
+  const grow = (sel, at, dur, prop, ease) =>
+    tl.fromTo(sel, { [prop || "scaleX"]: 0 }, { [prop || "scaleX"]: 1, duration: dur, ease: ease || OUT, immediateRender: true }, at);
+  // Timeline strip: the marker rides a full-width carriage, moved by xPercent.
+  const travel = (scope, at) => {
+    tl.fromTo(scope + " .t-carriage", { xPercent: 0 }, { xPercent: 100, duration: 1.0, ease: IO, immediateRender: true }, at);
+    grow(scope + " .t-fill", at, 1.0, "scaleX", IO);
+  };
+
+  // The logo only fades and rises by whole pixels, so it never resamples off-grid.
+  function logoIn(sel, at) {
+    const el = $(sel);
+    const o = { y: 12, a: 0 };
+    tl.to(o, {
+      y: 0,
+      a: 1,
+      duration: 0.8,
+      ease: "power2.out",
+      onUpdate: () => {
+        el.style.opacity = String(o.a);
+        el.style.transform = "translateY(" + Math.round(o.y) + "px)";
+      },
+    }, at);
+  }
+
+  // grid
+  fadeIn("#grid", 0.0, 0.8, 0.4);
+  fadeOut("#grid", 11.6, 0.4);
+  fadeIn("#grid", 18.0, 0.5, 0.4);
+  fadeOut("#grid", 23.6, 0.4);
+
+  // 0-4 hook
+  fadeIn(".curve-axis", 0.1, 0.6);
+  draw(".curve-path", 0.15, 1.2);
+  rise(".keycard", 0.3, 0.6);
+  rise("#hook-h", 0.6, 0.7);
+  fadeIn(".curve-point", 1.0, 0.25);
+  draw(".fracture-path", 2.6, 0.3, "power1.in");
+  tl.to(".half-a", { x: -2, y: -1, duration: 0.3, ease: OUT }, 2.85);
+  tl.to(".half-b", { x: 2, y: 1, duration: 0.3, ease: OUT }, 2.85);
+  tl.to(".fracture-path", { opacity: 0.7, duration: 0.3, ease: OUT }, 2.9);
+  fadeOut("#s-hook", 3.6, 0.4);
+
+  // 4-8 HNDL
+  fadeIn("#card-hndl", 4.0, 0.4);
+  fadeIn("#card-tnfl", 4.0, 0.4, 0.5);
+  rise("#card-hndl .eyebrow", 4.1, 0.5);
+  grow("#card-hndl .wire", 4.15, 0.45);
+  fadeIn("#card-hndl .node", 4.15, 0.3);
+  rise("#card-hndl .card-h", 4.4, 0.6);
+  fadeIn("#card-hndl .tstrip", 4.5, 0.4);
+  fadeIn("#card-hndl .tap", 4.85, 0.2);
+  D.rowAt.forEach((at, r) => rise('#card-hndl .arow[data-row="' + r + '"]', at, 0.3));
+  rise("#card-hndl .card-sub", 5.2, 0.6);
+  travel("#card-hndl", 6.0);
+  tl.to("#card-hndl .t-end", { color: "#f0a0a0", duration: 0.2 }, 6.95);
+  tl.to("#card-hndl", { opacity: 0.35, duration: 0.4, ease: IO }, 7.6);
+
+  // 8-12 TNFL
+  tl.to("#card-tnfl", { opacity: 1, duration: 0.3, ease: OUT }, 8.0);
+  tl.to("#card-tnfl .idx", { color: "#29dfc4", duration: 0.3 }, 8.0);
+  fadeIn("#card-tnfl .eyebrow-rest", 8.05, 0.3);
+  rise("#rec-tnfl", 8.2, 0.4);
+  rise("#card-tnfl .card-h", 8.3, 0.6);
+  fadeIn("#card-tnfl .tstrip", 8.4, 0.4);
+  travel("#card-tnfl", 9.0);
+  rise("#card-tnfl .card-sub", 9.2, 0.6);
+  tl.to("#card-tnfl .t-end", { color: "#f0a0a0", duration: 0.2 }, 9.95);
+  grow("#rec-tnfl .act-ul", 10.35, 0.25);
+  tl.to("#rec-tnfl .badge", { opacity: 0.35, duration: 0.15, ease: "power1.in" }, 10.65);
+  tl.to("#rec-tnfl .badge", { opacity: 1, duration: 0.2, ease: OUT }, 10.8);
+  tl.to("#card-hndl", { opacity: 1, duration: 0.3, ease: OUT }, 11.0);
+  fadeOut("#s-threats", 11.6, 0.4);
+
+  // 12-18 reveal
+  logoIn("#logo-reveal", 12.4);
+  rise("#reveal-h", 13.0, 0.6);
+  rise("#reveal-sub", 14.0, 0.5);
+  grow("#reveal-rule", 15.4, 0.4);
+  rise("#reveal-spec", 15.6, 0.5);
+  fadeOut("#s-reveal", 17.6, 0.4);
+
+  // 18-21 launched, beat 1
+  rise("#b1-idx", 18.1, 0.5);
+  rise("#rec-launch", 18.1, 0.4);
+  rise("#b1-h", 18.2, 0.6);
+  fadeIn("#b1-visual .tstrip", 18.3, 0.4);
+  fadeIn("#rec-launch .chip-mldsa", 18.5, 0.3);
+  rise("#b1-sub", 19.0, 0.5);
+  travel("#b1-visual", 19.0);
+  tl.to("#b1-visual .t-end", { color: "#f3f7f8", duration: 0.2 }, 19.95);
+  fadeIn("#rec-launch .chip-rej", 20.3, 0.12);
+  fadeOut("#beat-1", 20.7, 0.3);
+
+  // 21-24 launched, beat 2
+  rise("#b2-idx", 21.1, 0.5);
+  grow("#stack .base-line", 21.1, 0.4);
+  fadeIn("#stack .base-label", 21.15, 0.3);
+  rise("#b2-h", 21.2, 0.6);
+  rise("#stack .l1", 21.3, 0.35);
+  rise("#stack .l2", 21.6, 0.35);
+  rise("#b2-sub", 22.0, 0.5);
+  grow("#stack .spine", 22.2, 0.7, "scaleY", IO);
+  fadeOut("#s-launched", 23.6, 0.4);
+
+  // 24-30 end card, held to the last frame
+  logoIn("#logo-end", 24.0);
+  rise("#end-title", 25.0, 0.6);
+  rise("#end-url", 25.8, 0.5);
+  rise("#end-line", 26.4, 0.5);
+
+  // character-level renderer, spanning the full 30 s
+  const clock = { t: 0 };
+  tl.to(clock, { t: 30, duration: 30, ease: "none", onUpdate: () => render(clock.t) }, 0);
+  window.addEventListener("hf-seek", (e) => {
+    const t = e && e.detail ? Number(e.detail.time) : NaN;
+    if (Number.isFinite(t)) render(t);
+  });
+  render(0);
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["main"] = tl;
+})();
+
+    </script>
+  </body>
+</html>

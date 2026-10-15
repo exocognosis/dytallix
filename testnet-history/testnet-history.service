@@ -1,0 +1,23 @@
+[Unit]
+Description=Dytallix testnet history export (read-only, rate-limited)
+After=network-online.target dytallix-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+DynamicUser=yes
+StateDirectory=testnet-history
+ExecStart=/usr/bin/python3 -B /opt/testnet-history/testnet_history.py export --out /var/lib/testnet-history --api https://dytallix.com --rate 10 --follow
+Restart=on-failure
+RestartSec=60
+Nice=10
+IOSchedulingClass=idle
+MemoryMax=256M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

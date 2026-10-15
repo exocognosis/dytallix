@@ -1,0 +1,39 @@
+{
+  "transaction_id": "tx_0987654321fedcba",
+  "type": "risk_scoring",
+  "from_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "to_address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+  "amount": 25.75,
+  "timestamp": 1719137568,
+  "gas_limit": 5000,
+  "metadata": {
+    "network": "mainnet",
+    "token": "DTX",
+    "purpose": "test_transaction"
+  },
+  "requester_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "input_data": {
+    "transaction_history": [
+      {
+        "tx_id": "tx_abcdef123456",
+        "from": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+        "to": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        "amount": 10.5,
+        "timestamp": 1719047568
+      },
+      {
+        "tx_id": "tx_123456abcdef",
+        "from": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+        "to": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        "amount": 15.25,
+        "timestamp": 1719057568
+      }
+    ],
+    "risk_factors": [
+      "amount_threshold",
+      "velocity_check",
+      "address_reputation"
+    ],
+    "required_confidence": 0.8
+  }
+}

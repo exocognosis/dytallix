@@ -1,0 +1,12 @@
+{
+  "name": "dytallix-mainnet-launch-film",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node src/build.mjs",
+    "dev": "npx --yes hyperframes@0.8.79 preview",
+    "check": "npx --yes hyperframes@0.8.79 check",
+    "render:16x9": "npx --yes hyperframes@0.8.79 render -c ./index.html -o renders/dytallix-mainnet-16x9.mp4",
+    "render:9x16": "npx --yes hyperframes@0.8.79 render -c ./portrait.html -o renders/dytallix-mainnet-9x16.mp4"
+  }
+}

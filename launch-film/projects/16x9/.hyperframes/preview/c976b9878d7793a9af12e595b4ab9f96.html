@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" class="fmt-landscape">
+  <head><script data-hf-gsap-fallback>
+(function(){
+  var cdnBase="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/";
+  var loaded={};
+  function loadFallback(file){
+    if(loaded[file])return loaded[file];
+    return loaded[file]=new Promise(function(ok,fail){
+      var s=document.createElement("script");
+      s.src=cdnBase+file;s.onload=ok;s.onerror=fail;
+      document.head.appendChild(s);
+    });
+  }
+  document.addEventListener("error",function(e){
+    var t=e.target;
+    if(!t||t.tagName!=="SCRIPT"||!t.src)return;
+    var m=t.src.match(/gsap[^/]*\/dist\/(.+\.js)/);
+    if(m)loadFallback(m[1]);
+  },true);
+})();
+</script><base href="/api/projects/16x9/preview/"><style data-hyperframes-text-rendering="true">html,body,*{text-rendering:geometricPrecision}</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>Dytallix Mainnet Launch (1920x1080)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+@font-face {
+  font-family: "Inter";
+  src: url("assets/fonts/Inter-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("assets/fonts/JetBrainsMono-Variable.ttf") format("truetype");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Tokens: dytallix.com dark theme. Page is pure black so the logo's own
+   black matte is invisible without any blending. */
+:root {
+  --page: #000000;
+  --surface: #0c1116;
+  --raised: #111820;
+  --line: #26313b;
+  --line-strong: #3b4955;
+  --text: #f3f7f8;
+  --muted: #a9b5bd;
+  --subtle: #7f8d96;
+  --accent: #29dfc4;
+  --danger: #f0a0a0;
+  --sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overflow: hidden; background: var(--page); }
+#root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
+  font-kerning: normal;
+}
+
+.scene { position: absolute; inset: 0; }
+.abs { position: absolute; }
+
+/* ---------- type ---------- */
+.headline {
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  color: var(--text);
+  text-wrap: balance;
+}
+.sub {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.mono { font-family: var(--mono); }
+.label {
+  font-family: var(--mono);
+  font-size: var(--label-fs, 16px);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+.idx { color: var(--accent); }
+
+/* colour runs written by the scramble renderer */
+.ct { color: var(--text); }
+.cm { color: var(--muted); }
+.cs { color: var(--subtle); }
+.cr { color: var(--danger); }
+.ca { color: var(--accent); }
+
+/* hidden-at-start pieces: state is authored here, timeline only animates to */
+.in { opacity: 0; transform: translateY(16px); }
+.fade { opacity: 0; }
+
+/* ---------- grid ---------- */
+#grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image:
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px),
+    linear-gradient(to right, var(--line) 1px, transparent 1px);
+  background-size: 80px 80px;
+  background-position: -1px -1px;
+}
+
+/* ---------- hook ---------- */
+.hook-art { position: absolute; }
+.hook-art .half { position: absolute; inset: 0; }
+.art { position: absolute; inset: 0; }
+.art svg.curve { position: absolute; overflow: visible; }
+.curve-axis { stroke: var(--line-strong); stroke-width: 1; fill: none; opacity: 0; }
+.curve-path { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-linecap: butt; }
+.curve-point { fill: var(--page); stroke: var(--text); stroke-width: 1.5; opacity: 0; }
+.keycard {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  padding: 30px 34px 32px;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.keycard .label { margin-bottom: 12px; }
+.keycard .label.second { margin-top: 26px; }
+.khex {
+  font-family: var(--mono);
+  font-size: var(--hex-fs, 20px);
+  line-height: 1.6;
+  white-space: pre;
+  color: var(--muted);
+}
+svg.fracture { position: absolute; left: 0; top: 0; overflow: visible; }
+.fracture-path { stroke: var(--danger); stroke-width: 1.5; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }
+
+/* ---------- threat cards ---------- */
+.cards { position: absolute; display: flex; }
+.card {
+  position: relative;
+  flex: 1 1 0;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  opacity: 0;
+}
+.card-inner { position: absolute; inset: 0; }
+.eyebrow {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: var(--eyebrow-fs, 20px);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtle);
+  white-space: pre;
+}
+.eyebrow .acr { color: var(--text); }
+.eyebrow .tag { color: var(--subtle); }
+.card-h { position: absolute; }
+.card-sub { position: absolute; }
+.diagram { position: absolute; }
+
+/* HNDL diagram */
+.transport { position: absolute; left: 0; right: 0; top: 0; }
+.node {
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--muted);
+  background: var(--page);
+}
+.wire { position: absolute; height: 1px; background: var(--line-strong); transform-origin: 0 50%; }
+.packet {
+  position: absolute;
+  top: 0;
+  height: 30px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: var(--packet-fs, 15px);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  white-space: pre;
+  opacity: 0;
+}
+.tap { position: absolute; opacity: 0; }
+.tap-dot { position: absolute; width: 8px; height: 8px; background: var(--danger); }
+.tap-line { position: absolute; width: 1px; background: var(--danger); opacity: 0.6; }
+.archive { position: absolute; left: 0; right: 0; }
+.arow {
+  position: relative;
+  border: 1px solid var(--line);
+  background: var(--page);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-family: var(--mono);
+  color: var(--muted);
+  white-space: pre;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* timeline strip */
+.tstrip { position: absolute; display: flex; align-items: center; opacity: 0; }
+.tstrip .label { flex: 0 0 auto; }
+.tstrip .t-end { color: var(--subtle); }
+.t-track { position: relative; flex: 1 1 auto; height: 1px; background: var(--line); margin: 0 20px; }
+.t-fill { position: absolute; left: 0; top: 0; height: 1px; width: 100%; background: var(--muted); transform-origin: 0 50%; }
+.t-carriage { position: absolute; left: 0; top: 0; width: 100%; height: 0; }
+.t-marker { position: absolute; top: -9px; left: -1px; width: 2px; height: 19px; background: var(--text); }
+
+/* signed record */
+.record {
+  position: absolute;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+}
+.rec-row { position: absolute; display: flex; align-items: baseline; }
+.rec-row .label { flex: 0 0 auto; }
+.rv { font-family: var(--mono); color: var(--text); white-space: pre; }
+.rv.sig { color: var(--muted); }
+.act-wrap { position: relative; display: inline-block; }
+.act-ul { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger); transform-origin: 0 50%; }
+.badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.badge svg { display: block; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: pre;
+}
+.chip-mldsa { color: var(--accent); border: 1px solid var(--accent); opacity: 0; }
+.chip-rej { position: absolute; color: var(--danger); border: 1px solid var(--danger); opacity: 0; }
+
+/* ---------- logo ---------- */
+/* The supplied PNG is shown untouched: native pixels or an exact integer
+   downscale, cropped only to its own black padding. */
+.logo-crop { position: absolute; overflow: hidden; opacity: 0; }
+.logo-crop img { position: absolute; display: block; max-width: none; }
+
+/* ---------- reveal ---------- */
+.lockup-text { position: absolute; left: 0; right: 0; text-align: center; }
+.rule { position: absolute; height: 1px; background: var(--line-strong); transform-origin: 50% 50%; }
+.spec { font-family: var(--mono); color: var(--muted); letter-spacing: 0.01em; white-space: pre; }
+.spec .acc { color: var(--accent); }
+
+/* ---------- launched ---------- */
+.beat-text { position: absolute; }
+.beat-text .label { font-size: 22px; }
+.beat-visual { position: absolute; }
+.stack { position: absolute; }
+.layer {
+  position: absolute;
+  left: 0; right: 0;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: pre;
+  opacity: 0;
+  transform: translateY(16px);
+}
+.layer .acc { color: var(--accent); }
+.layer .dim { color: var(--muted); }
+.base-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-strong); transform-origin: 0 50%; }
+.base-label { position: absolute; opacity: 0; }
+.spine { position: absolute; width: 2px; background: var(--accent); transform-origin: 50% 100%; }
+
+/* ---------- end card ---------- */
+.end-title { font-weight: 550; letter-spacing: -0.03em; color: var(--text); }
+.end-url { font-family: var(--mono); color: var(--accent); letter-spacing: 0.02em; }
+.end-line { color: var(--subtle); letter-spacing: 0; }
+
+html, body { width: 1920px; height: 1080px; }
+    </style>
+  <script data-hyperframes-preview-runtime="1" src="/api/runtime.js"></script>
+<meta name="hyperframes-project-signature" content="9efafde635c00d1b1805913c">
+</head>
+  <body>
+    <!-- Generated by src/build.mjs. Edit the sources there, not this file. -->
+    <div data-hf-id="hf-3hqj" id="root" style="--label-fs:16px;--eyebrow-fs:20px;--hex-fs:20px;--packet-fs:15px" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-gs5t" id="grid"></div>
+
+    <section data-hf-id="hf-2h78" id="s-hook" class="scene clip" data-start="0" data-duration="4" data-track-index="1">
+      <div data-hf-id="hf-07nd" class="abs" style="left:128px;top:0px;width:760px;height:1080px;display:flex;align-items:center">
+        <h1 data-hf-id="hf-fo8i" id="hook-h" class="headline in" style="font-size:84px">Classical signatures will not hold.</h1>
+      </div>
+      <div data-hf-id="hf-taic" class="hook-art" style="left:968px;top:180px;width:824px;height:720px">
+        <div data-hf-id="hf-fckv" class="half half-a" style="clip-path:polygon(0% 0%, 46.117% 0.000%, 42.476% 15.278%, 48.301% 31.944%, 40.049% 52.778%, 45.146% 72.222%, 36.408% 100.000%, 0% 100%)">
+        <div data-hf-id="hf-y0ev" class="art">
+          <svg data-hf-id="hf-f22f" class="curve" style="left:0px;top:0px" width="440" height="460" viewBox="0 0 440 460">
+            <path data-hf-id="hf-z3k3" class="curve-axis" d="M0 230.0 H440 M227.5 0 V460" />
+            <path data-hf-id="hf-2y5g" class="curve-path" d="M437.8 -0.0 L432.7 8.0 L427.7 15.8 L422.6 23.4 L417.6 30.6 L412.6 37.7 L407.7 44.4 L402.8 50.9 L397.9 57.1 L393.1 62.9 L388.3 68.5 L383.5 73.8 L378.7 78.8 L374.0 83.4 L369.3 87.7 L364.7 91.6 L360.1 95.3 L355.5 98.5 L350.9 101.4 L346.4 103.9 L341.9 106.1 L337.4 108.0 L333.0 109.4 L328.6 110.6 L324.2 111.4 L319.9 111.9 L315.6 112.2 L311.3 112.1 L307.1 111.8 L302.9 111.3 L298.7 110.5 L294.6 109.6 L290.5 108.5 L286.4 107.2 L282.3 105.8 L278.3 104.3 L274.4 102.7 L270.4 101.0 L266.5 99.2 L262.6 97.4 L258.7 95.5 L254.9 93.7 L251.1 91.8 L247.4 89.9 L243.7 88.0 L240.0 86.1 L236.3 84.2 L232.7 82.4 L229.1 80.6 L225.5 78.8 L222.0 77.0 L218.5 75.3 L215.0 73.7 L211.6 72.1 L208.2 70.5 L204.8 69.1 L201.4 67.6 L198.1 66.3 L194.9 64.9 L191.6 63.7 L188.4 62.5 L185.2 61.4 L182.1 60.4 L178.9 59.4 L175.9 58.5 L172.8 57.7 L169.8 56.9 L166.8 56.2 L163.8 55.6 L160.9 55.1 L158.0 54.6 L155.2 54.2 L152.3 53.8 L149.5 53.6 L146.8 53.4 L144.0 53.3 L141.3 53.2 L138.7 53.2 L136.0 53.3 L133.4 53.5 L130.8 53.7 L128.3 54.0 L125.8 54.4 L123.3 54.8 L120.9 55.3 L118.4 55.9 L116.1 56.5 L113.7 57.2 L111.4 58.0 L109.1 58.8 L106.9 59.7 L104.6 60.7 L102.4 61.7 L100.3 62.8 L98.2 63.9 L96.1 65.1 L94.0 66.3 L92.0 67.7 L90.0 69.0 L88.0 70.5 L86.1 72.0 L84.2 73.5 L82.3 75.1 L80.5 76.7 L78.6 78.4 L76.9 80.2 L75.1 82.0 L73.4 83.8 L71.7 85.7 L70.1 87.7 L68.5 89.7 L66.9 91.7 L65.3 93.8 L63.8 96.0 L62.3 98.1 L60.9 100.4 L59.5 102.6 L58.1 104.9 L56.7 107.3 L55.4 109.7 L54.1 112.1 L52.8 114.6 L51.6 117.1 L50.4 119.6 L49.2 122.2 L48.1 124.8 L47.0 127.4 L45.9 130.1 L44.9 132.8 L43.9 135.5 L42.9 138.3 L41.9 141.0 L41.0 143.9 L40.2 146.7 L39.3 149.6 L38.5 152.5 L37.7 155.4 L37.0 158.3 L36.2 161.3 L35.6 164.3 L34.9 167.3 L34.3 170.3 L33.7 173.3 L33.1 176.4 L32.6 179.4 L32.1 182.5 L31.6 185.6 L31.2 188.7 L30.8 191.9 L30.4 195.0 L30.1 198.2 L29.8 201.3 L29.5 204.5 L29.3 207.7 L29.1 210.8 L28.9 214.0 L28.8 217.2 L28.6 220.4 L28.6 223.6 L28.5 226.8 L28.5 230.0 L28.5 233.2 L28.6 236.4 L28.6 239.6 L28.8 242.8 L28.9 246.0 L29.1 249.2 L29.3 252.3 L29.5 255.5 L29.8 258.7 L30.1 261.8 L30.4 265.0 L30.8 268.1 L31.2 271.3 L31.6 274.4 L32.1 277.5 L32.6 280.6 L33.1 283.6 L33.7 286.7 L34.3 289.7 L34.9 292.7 L35.6 295.7 L36.2 298.7 L37.0 301.7 L37.7 304.6 L38.5 307.5 L39.3 310.4 L40.2 313.3 L41.0 316.1 L41.9 319.0 L42.9 321.7 L43.9 324.5 L44.9 327.2 L45.9 329.9 L47.0 332.6 L48.1 335.2 L49.2 337.8 L50.4 340.4 L51.6 342.9 L52.8 345.4 L54.1 347.9 L55.4 350.3 L56.7 352.7 L58.1 355.1 L59.5 357.4 L60.9 359.6 L62.3 361.9 L63.8 364.0 L65.3 366.2 L66.9 368.3 L68.5 370.3 L70.1 372.3 L71.7 374.3 L73.4 376.2 L75.1 378.0 L76.9 379.8 L78.6 381.6 L80.5 383.3 L82.3 384.9 L84.2 386.5 L86.1 388.0 L88.0 389.5 L90.0 391.0 L92.0 392.3 L94.0 393.7 L96.1 394.9 L98.2 396.1 L100.3 397.2 L102.4 398.3 L104.6 399.3 L106.9 400.3 L109.1 401.2 L111.4 402.0 L113.7 402.8 L116.1 403.5 L118.4 404.1 L120.9 404.7 L123.3 405.2 L125.8 405.6 L128.3 406.0 L130.8 406.3 L133.4 406.5 L136.0 406.7 L138.7 406.8 L141.3 406.8 L144.0 406.7 L146.8 406.6 L149.5 406.4 L152.3 406.2 L155.2 405.8 L158.0 405.4 L160.9 404.9 L163.8 404.4 L166.8 403.8 L169.8 403.1 L172.8 402.3 L175.9 401.5 L178.9 400.6 L182.1 399.6 L185.2 398.6 L188.4 397.5 L191.6 396.3 L194.9 395.1 L198.1 393.7 L201.4 392.4 L204.8 390.9 L208.2 389.5 L211.6 387.9 L215.0 386.3 L218.5 384.7 L222.0 383.0 L225.5 381.2 L229.1 379.4 L232.7 377.6 L236.3 375.8 L240.0 373.9 L243.7 372.0 L247.4 370.1 L251.1 368.2 L254.9 366.3 L258.7 364.5 L262.6 362.6 L266.5 360.8 L270.4 359.0 L274.4 357.3 L278.3 355.7 L282.3 354.2 L286.4 352.8 L290.5 351.5 L294.6 350.4 L298.7 349.5 L302.9 348.7 L307.1 348.2 L311.3 347.9 L315.6 347.8 L319.9 348.1 L324.2 348.6 L328.6 349.4 L333.0 350.6 L337.4 352.0 L341.9 353.9 L346.4 356.1 L350.9 358.6 L355.5 361.5 L360.1 364.7 L364.7 368.4 L369.3 372.3 L374.0 376.6 L378.7 381.2 L383.5 386.2 L388.3 391.5 L393.1 397.1 L397.9 402.9 L402.8 409.1 L407.7 415.6 L412.6 422.3 L417.6 429.4 L422.6 436.6 L427.7 444.2 L432.7 452.0 L437.8 460.0" style="stroke-dasharray:1184;stroke-dashoffset:1184" />
+            <circle data-hf-id="hf-aei4" class="curve-point" cx="287.6" cy="107.6" r="6" />
+          </svg>
+          <div data-hf-id="hf-4pus" class="keycard" style="left:190px;top:440px">
+            <div data-hf-id="hf-70km" class="label" data-layout-allow-overlap="">Public key</div>
+            <div data-hf-id="hf-vzis" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-jfbo" class="cm">31 b0 d3 84 45 56 df 50 7f 5d 01 f8 7c 03 66 36</span></div><div data-hf-id="hf-qw8c" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-dlpw" class="cm">e6 c8 c1 40 90 63 5f a5 8a 7b d8 c6 f5 35 1b 72</span></div>
+            <div data-hf-id="hf-seys" class="label second" data-layout-allow-overlap="">Private key</div>
+            <div data-hf-id="hf-5rv9" class="khex priv" data-row="0" data-layout-allow-overlap=""><span data-hf-id="hf-899p" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div><div data-hf-id="hf-2slo" class="khex priv" data-row="1" data-layout-allow-overlap=""><span data-hf-id="hf-eu8x" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div>
+          </div>
+        </div></div>
+        <div data-hf-id="hf-q04z" class="half half-b" style="clip-path:polygon(46.117% 0.000%, 100% 0%, 100% 100%, 36.408% 100.000%, 45.146% 72.222%, 40.049% 52.778%, 48.301% 31.944%, 42.476% 15.278%, 46.117% 0.000%)">
+        <div data-hf-id="hf-kadz" class="art">
+          <svg data-hf-id="hf-g7qv" class="curve" style="left:0px;top:0px" width="440" height="460" viewBox="0 0 440 460">
+            <path data-hf-id="hf-gj7n" class="curve-axis" d="M0 230.0 H440 M227.5 0 V460" />
+            <path data-hf-id="hf-bw9o" class="curve-path" d="M437.8 -0.0 L432.7 8.0 L427.7 15.8 L422.6 23.4 L417.6 30.6 L412.6 37.7 L407.7 44.4 L402.8 50.9 L397.9 57.1 L393.1 62.9 L388.3 68.5 L383.5 73.8 L378.7 78.8 L374.0 83.4 L369.3 87.7 L364.7 91.6 L360.1 95.3 L355.5 98.5 L350.9 101.4 L346.4 103.9 L341.9 106.1 L337.4 108.0 L333.0 109.4 L328.6 110.6 L324.2 111.4 L319.9 111.9 L315.6 112.2 L311.3 112.1 L307.1 111.8 L302.9 111.3 L298.7 110.5 L294.6 109.6 L290.5 108.5 L286.4 107.2 L282.3 105.8 L278.3 104.3 L274.4 102.7 L270.4 101.0 L266.5 99.2 L262.6 97.4 L258.7 95.5 L254.9 93.7 L251.1 91.8 L247.4 89.9 L243.7 88.0 L240.0 86.1 L236.3 84.2 L232.7 82.4 L229.1 80.6 L225.5 78.8 L222.0 77.0 L218.5 75.3 L215.0 73.7 L211.6 72.1 L208.2 70.5 L204.8 69.1 L201.4 67.6 L198.1 66.3 L194.9 64.9 L191.6 63.7 L188.4 62.5 L185.2 61.4 L182.1 60.4 L178.9 59.4 L175.9 58.5 L172.8 57.7 L169.8 56.9 L166.8 56.2 L163.8 55.6 L160.9 55.1 L158.0 54.6 L155.2 54.2 L152.3 53.8 L149.5 53.6 L146.8 53.4 L144.0 53.3 L141.3 53.2 L138.7 53.2 L136.0 53.3 L133.4 53.5 L130.8 53.7 L128.3 54.0 L125.8 54.4 L123.3 54.8 L120.9 55.3 L118.4 55.9 L116.1 56.5 L113.7 57.2 L111.4 58.0 L109.1 58.8 L106.9 59.7 L104.6 60.7 L102.4 61.7 L100.3 62.8 L98.2 63.9 L96.1 65.1 L94.0 66.3 L92.0 67.7 L90.0 69.0 L88.0 70.5 L86.1 72.0 L84.2 73.5 L82.3 75.1 L80.5 76.7 L78.6 78.4 L76.9 80.2 L75.1 82.0 L73.4 83.8 L71.7 85.7 L70.1 87.7 L68.5 89.7 L66.9 91.7 L65.3 93.8 L63.8 96.0 L62.3 98.1 L60.9 100.4 L59.5 102.6 L58.1 104.9 L56.7 107.3 L55.4 109.7 L54.1 112.1 L52.8 114.6 L51.6 117.1 L50.4 119.6 L49.2 122.2 L48.1 124.8 L47.0 127.4 L45.9 130.1 L44.9 132.8 L43.9 135.5 L42.9 138.3 L41.9 141.0 L41.0 143.9 L40.2 146.7 L39.3 149.6 L38.5 152.5 L37.7 155.4 L37.0 158.3 L36.2 161.3 L35.6 164.3 L34.9 167.3 L34.3 170.3 L33.7 173.3 L33.1 176.4 L32.6 179.4 L32.1 182.5 L31.6 185.6 L31.2 188.7 L30.8 191.9 L30.4 195.0 L30.1 198.2 L29.8 201.3 L29.5 204.5 L29.3 207.7 L29.1 210.8 L28.9 214.0 L28.8 217.2 L28.6 220.4 L28.6 223.6 L28.5 226.8 L28.5 230.0 L28.5 233.2 L28.6 236.4 L28.6 239.6 L28.8 242.8 L28.9 246.0 L29.1 249.2 L29.3 252.3 L29.5 255.5 L29.8 258.7 L30.1 261.8 L30.4 265.0 L30.8 268.1 L31.2 271.3 L31.6 274.4 L32.1 277.5 L32.6 280.6 L33.1 283.6 L33.7 286.7 L34.3 289.7 L34.9 292.7 L35.6 295.7 L36.2 298.7 L37.0 301.7 L37.7 304.6 L38.5 307.5 L39.3 310.4 L40.2 313.3 L41.0 316.1 L41.9 319.0 L42.9 321.7 L43.9 324.5 L44.9 327.2 L45.9 329.9 L47.0 332.6 L48.1 335.2 L49.2 337.8 L50.4 340.4 L51.6 342.9 L52.8 345.4 L54.1 347.9 L55.4 350.3 L56.7 352.7 L58.1 355.1 L59.5 357.4 L60.9 359.6 L62.3 361.9 L63.8 364.0 L65.3 366.2 L66.9 368.3 L68.5 370.3 L70.1 372.3 L71.7 374.3 L73.4 376.2 L75.1 378.0 L76.9 379.8 L78.6 381.6 L80.5 383.3 L82.3 384.9 L84.2 386.5 L86.1 388.0 L88.0 389.5 L90.0 391.0 L92.0 392.3 L94.0 393.7 L96.1 394.9 L98.2 396.1 L100.3 397.2 L102.4 398.3 L104.6 399.3 L106.9 400.3 L109.1 401.2 L111.4 402.0 L113.7 402.8 L116.1 403.5 L118.4 404.1 L120.9 404.7 L123.3 405.2 L125.8 405.6 L128.3 406.0 L130.8 406.3 L133.4 406.5 L136.0 406.7 L138.7 406.8 L141.3 406.8 L144.0 406.7 L146.8 406.6 L149.5 406.4 L152.3 406.2 L155.2 405.8 L158.0 405.4 L160.9 404.9 L163.8 404.4 L166.8 403.8 L169.8 403.1 L172.8 402.3 L175.9 401.5 L178.9 400.6 L182.1 399.6 L185.2 398.6 L188.4 397.5 L191.6 396.3 L194.9 395.1 L198.1 393.7 L201.4 392.4 L204.8 390.9 L208.2 389.5 L211.6 387.9 L215.0 386.3 L218.5 384.7 L222.0 383.0 L225.5 381.2 L229.1 379.4 L232.7 377.6 L236.3 375.8 L240.0 373.9 L243.7 372.0 L247.4 370.1 L251.1 368.2 L254.9 366.3 L258.7 364.5 L262.6 362.6 L266.5 360.8 L270.4 359.0 L274.4 357.3 L278.3 355.7 L282.3 354.2 L286.4 352.8 L290.5 351.5 L294.6 350.4 L298.7 349.5 L302.9 348.7 L307.1 348.2 L311.3 347.9 L315.6 347.8 L319.9 348.1 L324.2 348.6 L328.6 349.4 L333.0 350.6 L337.4 352.0 L341.9 353.9 L346.4 356.1 L350.9 358.6 L355.5 361.5 L360.1 364.7 L364.7 368.4 L369.3 372.3 L374.0 376.6 L378.7 381.2 L383.5 386.2 L388.3 391.5 L393.1 397.1 L397.9 402.9 L402.8 409.1 L407.7 415.6 L412.6 422.3 L417.6 429.4 L422.6 436.6 L427.7 444.2 L432.7 452.0 L437.8 460.0" style="stroke-dasharray:1184;stroke-dashoffset:1184" />
+            <circle data-hf-id="hf-tdok" class="curve-point" cx="287.6" cy="107.6" r="6" />
+          </svg>
+          <div data-hf-id="hf-hvh8" class="keycard" style="left:190px;top:440px">
+            <div data-hf-id="hf-gzl6" class="label" data-layout-allow-overlap="">Public key</div>
+            <div data-hf-id="hf-ppb9" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-7xik" class="cm">31 b0 d3 84 45 56 df 50 7f 5d 01 f8 7c 03 66 36</span></div><div data-hf-id="hf-q3ma" class="khex" data-layout-allow-overlap=""><span data-hf-id="hf-e5vw" class="cm">e6 c8 c1 40 90 63 5f a5 8a 7b d8 c6 f5 35 1b 72</span></div>
+            <div data-hf-id="hf-7v98" class="label second" data-layout-allow-overlap="">Private key</div>
+            <div data-hf-id="hf-5mkp" class="khex priv" data-row="0" data-layout-allow-overlap=""><span data-hf-id="hf-g160" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div><div data-hf-id="hf-8eas" class="khex priv" data-row="1" data-layout-allow-overlap=""><span data-hf-id="hf-fmuz" class="cs">•• •• •• •• •• •• •• •• •• •• •• •• •• •• •• ••</span></div>
+          </div>
+        </div></div>
+        <svg data-hf-id="hf-vlo3" class="fracture" width="824" height="720" viewBox="0 0 824 720">
+          <polyline data-hf-id="hf-b40y" class="fracture-path" points="380,0 350,110 398,230 330,380 372,520 300,720" style="stroke-dasharray:769;stroke-dashoffset:769" />
+        </svg>
+      </div>
+    </section>
+
+    <section data-hf-id="hf-d0tc" id="s-threats" class="scene clip" data-start="4" data-duration="8" data-track-index="1">
+      <div data-hf-id="hf-ecv5" class="cards" style="left:128px;top:140px;width:1664px;height:800px;flex-direction:row;gap:48px">
+        
+      <article data-hf-id="hf-yjm9" class="card" id="card-hndl" style="width:808px;height:800px;flex:0 0 auto">
+        <div data-hf-id="hf-l9jp" class="eyebrow" style="left:44px;top:44px"><span data-hf-id="hf-3mph" class="idx">01</span>  <span data-hf-id="hf-m3yn" class="acr">HNDL</span>  ·  <span data-hf-id="hf-xxdf" class="tag">Confidentiality</span></div>
+        <h2 data-hf-id="hf-am89" class="card-h headline in" style="left:44px;top:96px;width:720px;font-size:60px">Harvest now,<br data-hf-id="hf-x5px">decrypt later.</h2>
+        <p data-hf-id="hf-olyi" class="card-sub sub in" style="left:44px;top:240px;width:720px;font-size:28px">Stolen ciphertext waits for Q-Day.</p>
+        <div data-hf-id="hf-a2jc" class="diagram" style="left:44px;top:330px;width:720px;height:330px">
+          <div data-hf-id="hf-5exf" class="transport" style="height:30px">
+            <div data-hf-id="hf-p5yp" class="node fade" style="left:0;top:8px"></div>
+            <div data-hf-id="hf-nhtp" class="wire" style="left:14px;top:15px;width:692px"></div>
+            <div data-hf-id="hf-pd7g" class="node fade" style="right:0;top:8px"></div>
+            <div data-hf-id="hf-6dbv" class="tap" style="left:0;top:0;width:100%;height:100%">
+              <div data-hf-id="hf-xbg9" class="tap-dot" style="left:356px;top:11px;width:8px;height:8px"></div>
+              <div data-hf-id="hf-i12k" class="tap-line" style="left:359.5px;top:19px;height:69px"></div>
+            </div>
+            <div data-hf-id="hf-jlrf" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">4dbc 5762</div>
+            <div data-hf-id="hf-u9x1" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">691c a447</div>
+            <div data-hf-id="hf-gyjc" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">90df c372</div>
+            <div data-hf-id="hf-k540" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">aa2e 752c</div>
+            <div data-hf-id="hf-8qjt" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">20b7 e021</div>
+            <div data-hf-id="hf-ktdc" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">1ac4 6c51</div>
+            <div data-hf-id="hf-jgu3" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">0097 adb2</div>
+            <div data-hf-id="hf-uy0y" class="packet" style="width:109px;justify-content:center;left:calc(var(--p, 0) * (100% - 109px))">f050 92f0</div>
+          </div>
+          <div data-hf-id="hf-qd5j" class="archive" style="top:88px">
+            <div data-hf-id="hf-js2q" class="arow" data-row="0" style="height:50px;margin-bottom:10px;font-size:18px"><span data-hf-id="hf-brcj" class="atext"><span data-hf-id="hf-lu64" class="cm">fd 30 89 1c 6f 65 ba ad bc 45 f3 a6 c8 19 53 8f c4 4e f4 29</span></span></div>
+            <div data-hf-id="hf-k807" class="arow" data-row="1" style="height:50px;margin-bottom:10px;font-size:18px"><span data-hf-id="hf-a7bn" class="atext"><span data-hf-id="hf-97jz" class="cm">b4 24 31 05 07 62 2e e2 95 80 0d ac 6b d7 2a d6 70 a4 bc da</span></span></div>
+            <div data-hf-id="hf-ok8w" class="arow" data-row="2" style="height:50px;margin-bottom:10px;font-size:18px"><span data-hf-id="hf-9t0m" class="atext"><span data-hf-id="hf-iof9" class="cm">c7 93 45 4a db c3 09 70 16 4c 56 bf 38 03 b3 4c 3a f3 2e 32</span></span></div>
+            <div data-hf-id="hf-50by" class="arow" data-row="3" style="height:50px;margin-bottom:0px;font-size:18px"><span data-hf-id="hf-9epl" class="atext"><span data-hf-id="hf-95yj" class="cm">be ef bd d5 58 e1 ef 57 d3 ad 1c 59 6c 89 c3 12 d8 14 32 fb</span></span></div>
+          </div>
+        </div>
+        <div data-hf-id="hf-c9cm" class="tstrip" style="left:44px;top:704px;width:720px;height:40px">
+        <span data-hf-id="hf-t27j" class="label">Now</span>
+        <div data-hf-id="hf-tq8m" class="t-track"><div data-hf-id="hf-xadq" class="t-fill"></div><div data-hf-id="hf-l0b7" class="t-carriage"><div data-hf-id="hf-dg5v" class="t-marker"></div></div></div>
+        <span data-hf-id="hf-xv27" class="label t-end">Q-Day</span>
+      </div>
+      </article>
+        
+      <article data-hf-id="hf-65g3" class="card" id="card-tnfl" style="width:808px;height:800px;flex:0 0 auto">
+        <div data-hf-id="hf-d3ls" class="eyebrow" style="left:44px;top:44px"><span data-hf-id="hf-zuu2" class="idx" style="color:var(--subtle)">02</span><span data-hf-id="hf-6676" class="eyebrow-rest fade">  <span data-hf-id="hf-vlb5" class="acr">TNFL</span>  ·  <span data-hf-id="hf-9zz6" class="tag">Authenticity</span></span></div>
+        <h2 data-hf-id="hf-wjxi" class="card-h headline in" style="left:44px;top:96px;width:720px;font-size:60px">Trust now,<br data-hf-id="hf-rsrt">forge later.</h2>
+        <p data-hf-id="hf-7kms" class="card-sub sub in" style="left:44px;top:240px;width:720px;font-size:28px">Broken signatures become forged approvals.</p>
+        <div data-hf-id="hf-8tkg" class="diagram" style="left:44px;top:330px;width:720px;height:330px"><div data-hf-id="hf-rnck" class="record in" id="rec-tnfl" style="left:0px;top:0px;width:720px;height:330px">
+        <div data-hf-id="hf-7x6v" class="badge" style="right:30px;top:24px;height:36px;font-size:var(--label-fs)"><svg data-hf-id="hf-lynh" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path data-hf-id="hf-jik8" d="M2.5 8.5 L6.5 12 L13.5 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" /></svg><span data-hf-id="hf-8q19">Valid</span></div>
+        <div data-hf-id="hf-2dew" class="rec-row" style="left:30px;top:44px;width:660px"><span data-hf-id="hf-88k7" class="label" style="width:190px">Signer</span><span data-hf-id="hf-nuqv" class="rv" style="font-size:20px;line-height:34px">4bfa 542b 2d62 … 941e</span></div>
+        <div data-hf-id="hf-mnru" class="rec-row" style="left:30px;top:112px;width:660px"><span data-hf-id="hf-qh8j" class="label" style="width:190px">Action</span><span data-hf-id="hf-rjd8" class="act-wrap"><span data-hf-id="hf-9nbg" class="rv act" style="font-size:20px;line-height:34px"><span data-hf-id="hf-ib3w" class="ct">release → A</span></span><span data-hf-id="hf-msdv" class="act-ul" style="bottom:-2px"></span></span></div>
+        <div data-hf-id="hf-bzq6" class="rec-row" style="left:30px;top:180px;width:660px;align-items:flex-start"><span data-hf-id="hf-iy9x" class="label" style="width:190px;line-height:34px">Signature</span><span data-hf-id="hf-ttgn" class="rv sig" style="font-size:20px;line-height:34px"><span data-hf-id="hf-qqq4" class="sig-l" data-row="0" style="display:block"><span data-hf-id="hf-weq0" class="cm">57 e0 cb 04 54 ac 19 33 46 a7 63 29</span></span><span data-hf-id="hf-qhcl" class="sig-l" data-row="1" style="display:block"><span data-hf-id="hf-0axb" class="cm">73 09 5d 13 2f 03 5a 09 ea 66 10 c0</span></span><span data-hf-id="hf-ls7i" class="sig-l" data-row="2" style="display:block"><span data-hf-id="hf-4afv" class="cm">50 08 5f 39 c0 82 31 c5 21 a8 0d 38</span></span></span></div>
+      </div>
+        </div>
+        <div data-hf-id="hf-8yt6" class="tstrip" style="left:44px;top:704px;width:720px;height:40px">
+        <span data-hf-id="hf-ha4v" class="label">Now</span>
+        <div data-hf-id="hf-ta7u" class="t-track"><div data-hf-id="hf-a9xu" class="t-fill"></div><div data-hf-id="hf-t1df" class="t-carriage"><div data-hf-id="hf-f7n7" class="t-marker"></div></div></div>
+        <span data-hf-id="hf-9gfz" class="label t-end">Q-Day</span>
+      </div>
+      </article>
+      </div>
+    </section>
+
+    <section data-hf-id="hf-djmr" id="s-reveal" class="scene clip" data-start="12" data-duration="6" data-track-index="1">
+      <div data-hf-id="hf-fp0o" class="logo-crop" id="logo-reveal" style="left:810px;top:212px;width:300px;height:345px;transform:translateY(12px)">
+        <img data-hf-id="hf-ex1v" data-layout-allow-overflow="" src="assets/dytallix-logo.png" alt="Dytallix" width="500" height="500" style="left:-105px;top:-80px;width:500px;height:500px">
+      </div>
+      <h1 data-hf-id="hf-u0xw" id="reveal-h" class="headline in lockup-text" style="top:605px;font-size:80px;margin:0 auto;width:1400px;left:260px;right:auto">Dytallix mainnet is live.</h1>
+      <p data-hf-id="hf-acft" id="reveal-sub" class="sub in lockup-text" style="top:710px;font-size:34px">A PQC-native Layer 1.</p>
+      <div data-hf-id="hf-ju7h" id="reveal-rule" class="rule" style="left:700px;top:788px;width:520px"></div>
+      <p data-hf-id="hf-ky6k" id="reveal-spec" class="spec in lockup-text" style="top:818px;font-size:26px">NIST <span data-hf-id="hf-ib9k" class="acc">ML-DSA</span> signing. <span data-hf-id="hf-mwwf" class="acc">ML-KEM</span> transport.</p>
+    </section>
+
+    <section data-hf-id="hf-p4vo" id="s-launched" class="scene clip" data-start="18" data-duration="6" data-track-index="1">
+      <div data-hf-id="hf-83j9" id="beat-1" class="abs" style="inset:0">
+        
+        <div data-hf-id="hf-is30" class="beat-text" style="left:128px;top:0px;width:760px;height:1080px;display:flex;flex-direction:column;justify-content:center;gap:26px">
+          <div data-hf-id="hf-ivi8" id="b1-idx" class="label idx in">01</div>
+          <h2 data-hf-id="hf-ndy5" id="b1-h" class="headline in" style="font-size:72px">Post-quantum authorization</h2>
+          <p data-hf-id="hf-1urq" id="b1-sub" class="sub in" style="font-size:32px">TNFL addressed at genesis.</p>
+        </div>
+        <div data-hf-id="hf-7bsm" id="b1-visual" class="beat-visual" style="left:1072px;top:333px;width:720px;height:414px">
+          <div data-hf-id="hf-76d5" class="record in" id="rec-launch" style="left:0px;top:0px;width:720px;height:330px">
+        <div data-hf-id="hf-tvqf" class="badge" style="right:30px;top:24px;height:36px;font-size:var(--label-fs)"><svg data-hf-id="hf-9t29" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path data-hf-id="hf-tvv4" d="M2.5 8.5 L6.5 12 L13.5 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" /></svg><span data-hf-id="hf-5729">Valid</span></div>
+        <div data-hf-id="hf-v90g" class="rec-row" style="left:30px;top:44px;width:660px"><span data-hf-id="hf-nyvr" class="label" style="width:190px">Signer</span><span data-hf-id="hf-1pmv" class="rv" style="font-size:20px;line-height:34px">4bfa 542b 2d62 … 941e</span></div>
+        <div data-hf-id="hf-wiym" class="rec-row" style="left:30px;top:112px;width:660px"><span data-hf-id="hf-8itf" class="label" style="width:190px">Action</span><span data-hf-id="hf-djac" class="act-wrap"><span data-hf-id="hf-9w84" class="rv act" style="font-size:20px;line-height:34px"><span data-hf-id="hf-kdh0" class="ct">release → A</span></span></span><span data-hf-id="hf-pm7f" class="chip chip-rej" style="left:346px;top:0;height:34px;padding:0 12px;font-size:var(--label-fs)">Rejected</span></div>
+        <div data-hf-id="hf-99xe" class="rec-row" style="left:30px;top:180px;width:660px;align-items:flex-start"><span data-hf-id="hf-ew61" class="label" style="width:190px;line-height:34px">Signature<br data-hf-id="hf-szow"><span data-hf-id="hf-ck0j" class="chip chip-mldsa" style="margin-top:6px;height:28px;padding:0 10px;font-size:calc(var(--label-fs) - 2px)">ML-DSA</span></span><span data-hf-id="hf-axvr" class="rv sig" style="font-size:20px;line-height:34px"><span data-hf-id="hf-3uuc" class="sig-l" data-row="0" style="display:block"><span data-hf-id="hf-w4jk" class="cm">57 e0 cb 04 54 ac 19 33 46 a7 63 29</span></span><span data-hf-id="hf-vbm1" class="sig-l" data-row="1" style="display:block"><span data-hf-id="hf-spdb" class="cm">73 09 5d 13 2f 03 5a 09 ea 66 10 c0</span></span><span data-hf-id="hf-ad5e" class="sig-l" data-row="2" style="display:block"><span data-hf-id="hf-gxsr" class="cm">50 08 5f 39 c0 82 31 c5 21 a8 0d 38</span></span></span></div>
+      </div>
+          <div data-hf-id="hf-v9j1" class="tstrip" style="left:0px;top:374px;width:720px;height:40px">
+        <span data-hf-id="hf-gs7l" class="label">Genesis</span>
+        <div data-hf-id="hf-toiv" class="t-track"><div data-hf-id="hf-ao8v" class="t-fill"></div><div data-hf-id="hf-sn2e" class="t-carriage"><div data-hf-id="hf-etc6" class="t-marker"></div></div></div>
+        <span data-hf-id="hf-924y" class="label t-end">Q-Day</span>
+      </div>
+        </div>
+      </div>
+      <div data-hf-id="hf-0ahq" id="beat-2" class="abs" style="inset:0">
+        
+        <div data-hf-id="hf-us04" class="beat-text" style="left:128px;top:0px;width:760px;height:1080px;display:flex;flex-direction:column;justify-content:center;gap:26px">
+          <div data-hf-id="hf-ihpi" id="b2-idx" class="label idx in">02</div>
+          <h2 data-hf-id="hf-11vg" id="b2-h" class="headline in" style="font-size:72px">Native PQC stack</h2>
+          <p data-hf-id="hf-bvev" id="b2-sub" class="sub in" style="font-size:32px">Not an ECC retrofit.</p>
+        </div>
+        <div data-hf-id="hf-u56b" id="stack" class="stack" style="left:1072px;top:396px;width:720px;height:280px">
+          <div data-hf-id="hf-jfyr" class="layer l2" style="left:0px;top:0px;height:96px;font-size:22px;padding-left:84px"><span data-hf-id="hf-spbj" class="acc">ML-KEM</span><span data-hf-id="hf-eizv" class="dim">  ·  Transport</span></div>
+          <div data-hf-id="hf-zsgg" class="layer l1" style="left:0px;top:112px;height:96px;font-size:22px;padding-left:84px"><span data-hf-id="hf-qbk0" class="acc">ML-DSA</span><span data-hf-id="hf-fc25" class="dim">  ·  Signing</span></div>
+          <div data-hf-id="hf-cn4v" class="base-line" style="top:240px"></div>
+          <div data-hf-id="hf-9dg2" class="label base-label" style="left:0;top:256px">Genesis</div>
+          <div data-hf-id="hf-uhd5" class="spine" style="left:41px;top:0px;height:240px"></div>
+        </div>
+      </div>
+    </section>
+
+    <section data-hf-id="hf-rwc8" id="s-end" class="scene clip" data-start="24" data-duration="6" data-track-index="1">
+      <div data-hf-id="hf-kxta" class="logo-crop" id="logo-end" style="left:840px;top:262px;width:240px;height:276px;transform:translateY(12px)">
+        <img data-hf-id="hf-tj43" data-layout-allow-overflow="" src="assets/dytallix-logo.png" alt="Dytallix" width="400" height="400" style="left:-84px;top:-64px;width:400px;height:400px">
+      </div>
+      <h1 data-hf-id="hf-i0uu" id="end-title" class="end-title in lockup-text" style="top:582px;font-size:72px;line-height:1.1">Dytallix Mainnet</h1>
+      <p data-hf-id="hf-oayo" id="end-url" class="end-url in lockup-text" style="top:687px;font-size:30px">www.dytallix.com</p>
+      <p data-hf-id="hf-r480" id="end-line" class="end-line sub in lockup-text" style="top:756px;font-size:24px">Built for the Quantum Era.</p>
+    </section>
+    </div>
+    
+    
+  <script>window.FILM_DATA = { "pub": ["31 b0 d3 84 45 56 df 50 7f 5d 01 f8 7c 03 66 36", "e6 c8 c1 40 90 63 5f a5 8a 7b d8 c6 f5 35 1b 72"], "priv": ["96 15 3d f0 dc fe 2d d5 6c 0a 0f 32 f2 4d a9 62", "60 92 60 f9 67 7e 8d d3 29 81 a8 cd 64 80 27 fe"], "privMask": ["\u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022", "\u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022 \u2022\u2022"], "packets": ["4dbc 5762", "691c a447", "90df c372", "aa2e 752c", "20b7 e021", "1ac4 6c51", "0097 adb2", "f050 92f0"], "packetStart": [4.25, 4.59, 4.93, 5.27, 5.61, 5.95, 6.29, 6.63], "packetTravel": 1.1, "arch": ["fd 30 89 1c 6f 65 ba ad bc 45 f3 a6 c8 19 53 8f c4 4e f4 29", "b4 24 31 05 07 62 2e e2 95 80 0d ac 6b d7 2a d6 70 a4 bc da", "c7 93 45 4a db c3 09 70 16 4c 56 bf 38 03 b3 4c 3a f3 2e 32", "be ef bd d5 58 e1 ef 57 d3 ad 1c 59 6c 89 c3 12 d8 14 32 fb"], "plain": ["contract terms", "wallet backup", "session keys", "private message"], "signer": "4bfa 542b 2d62 \u2026 941e", "actA": "release \u2192 A", "actX": "release \u2192 X", "sigA": ["57 e0 cb 04 54 ac 19 33 46 a7 63 29", "73 09 5d 13 2f 03 5a 09 ea 66 10 c0", "50 08 5f 39 c0 82 31 c5 21 a8 0d 38"], "sigB": ["ce 2d 1e 00 de 39 5d e3 d1 23 54 f7", "86 58 b6 f7 b9 53 bd eb ed 1e c7 72", "2e 01 3a 36 2b fc 46 60 2b 14 a7 39"], "rowAt": [5.14, 5.48, 5.82, 6.16] };
+(function() {
+  const D = window.FILM_DATA;
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+  const GLYPHS = "0123456789abcdef";
+  function hash(a, b, c) {
+    let x = Math.imul(a ^ 2654435769, 2246822507) ^ Math.imul(b + 1663821227, 3266489909) ^ Math.imul(c + 668265263, 374761393);
+    x ^= x >>> 15;
+    x = Math.imul(x, 739982445);
+    x ^= x >>> 12;
+    return x >>> 0;
+  }
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const clamp01 = (x) => x < 0 ? 0 : x > 1 ? 1 : x;
+  const win = (t, a, b) => clamp01((t - a) / (b - a));
+  function scrambleHTML(from, to, p, seed, tick, o) {
+    const n = Math.max(from.length, to.length);
+    let out = "";
+    let cur = null;
+    let buf = "";
+    const push = (cls, ch) => {
+      if (cls !== cur) {
+        if (cur !== null) out += '<span class="' + cur + '">' + esc(buf) + "</span>";
+        cur = cls;
+        buf = "";
+      }
+      buf += ch;
+    };
+    for (let i = 0; i < n; i++) {
+      const f = i < from.length ? from[i] : " ";
+      const g = i < to.length ? to[i] : " ";
+      const a = i / n * 0.55;
+      const b = a + 0.45;
+      const moving = o.all ? f !== " " || g !== " " : f !== g;
+      if (p >= 1 || p >= b) push(o.to, g);
+      else if (p <= 0 || p <= a || !moving) push(o.from, f);
+      else push(o.mid, GLYPHS[hash(seed, i, tick) % GLYPHS.length]);
+    }
+    if (cur !== null) out += '<span class="' + cur + '">' + esc(buf) + "</span>";
+    return out;
+  }
+  function put(els, html) {
+    for (const el of els) {
+      if (el.__h !== html) {
+        el.innerHTML = html;
+        el.__h = html;
+      }
+    }
+  }
+  const privEls = [0, 1].map((r) => $$('.khex.priv[data-row="' + r + '"]'));
+  const packets = $$(".packet");
+  const archEls = $$(".arow .atext");
+  const act1 = $$("#rec-tnfl .act");
+  const sig1 = [0, 1, 2].map((r) => $$('#rec-tnfl .sig-l[data-row="' + r + '"]'));
+  const act2 = $$("#rec-launch .act");
+  let last = -1;
+  function render(t) {
+    t = Math.max(0, Math.min(30, t));
+    if (t === last) return;
+    last = t;
+    const tick = Math.floor(t * 15 + 1e-6);
+    for (let r = 0; r < 2; r++) {
+      const p = win(t, 1.2 + r * 0.6, 1.8 + r * 0.6);
+      put(privEls[r], scrambleHTML(D.privMask[r], D.priv[r], p, 11 + r, tick, { from: "cs", mid: "cm", to: "cr" }));
+    }
+    packets.forEach((el, k) => {
+      const p = (t - D.packetStart[k]) / D.packetTravel;
+      if (p <= 0 || p >= 1) {
+        el.style.opacity = "0";
+      } else {
+        el.style.opacity = String(Math.min(1, p / 0.08, (1 - p) / 0.08));
+        el.style.setProperty("--p", p.toFixed(4));
+      }
+    });
+    archEls.forEach((el, r) => {
+      const p = win(t, 7 + 0.08 * r, 7.45 + 0.08 * r);
+      put([el], scrambleHTML(D.arch[r], D.plain[r], p, 31 + r, tick, { from: "cm", mid: "cm", to: "cr" }));
+    });
+    put(act1, scrambleHTML(D.actA, D.actX, win(t, 10, 10.4), 51, tick, { from: "ct", mid: "cm", to: "cr", all: true }));
+    for (let r = 0; r < 3; r++) {
+      put(sig1[r], scrambleHTML(D.sigA[r], D.sigB[r], win(t, 10.1 + 0.1 * r, 10.5 + 0.1 * r), 61 + r, tick, { from: "cm", mid: "cm", to: "cm" }));
+    }
+    put(act2, scrambleHTML(D.actA, D.actA, win(t, 20, 20.35), 71, tick, { from: "ct", mid: "cr", to: "ct", all: true }));
+  }
+  const tl = gsap.timeline({ paused: true });
+  const OUT = "power3.out";
+  const IO = "power2.inOut";
+  const rise = (sel, at, dur) => tl.to(sel, { opacity: 1, y: 0, duration: dur || 0.6, ease: OUT }, at);
+  const fadeIn = (sel, at, dur, to) => tl.to(sel, { opacity: to == null ? 1 : to, duration: dur || 0.4, ease: OUT }, at);
+  const fadeOut = (sel, at, dur) => tl.to(sel, { opacity: 0, duration: dur || 0.4, ease: "power2.in" }, at);
+  const draw = (sel, at, dur, ease) => tl.to(sel, { strokeDashoffset: 0, duration: dur, ease: ease || IO }, at);
+  const grow = (sel, at, dur, prop, ease) => tl.fromTo(sel, { [prop || "scaleX"]: 0 }, { [prop || "scaleX"]: 1, duration: dur, ease: ease || OUT, immediateRender: true }, at);
+  const travel = (scope, at) => {
+    tl.fromTo(scope + " .t-carriage", { xPercent: 0 }, { xPercent: 100, duration: 1, ease: IO, immediateRender: true }, at);
+    grow(scope + " .t-fill", at, 1, "scaleX", IO);
+  };
+  function logoIn(sel, at) {
+    const el = $(sel);
+    const o = { y: 12, a: 0 };
+    tl.to(o, {
+      y: 0,
+      a: 1,
+      duration: 0.8,
+      ease: "power2.out",
+      onUpdate: () => {
+        el.style.opacity = String(o.a);
+        el.style.transform = "translateY(" + Math.round(o.y) + "px)";
+      }
+    }, at);
+  }
+  fadeIn("#grid", 0, 0.8, 0.4);
+  fadeOut("#grid", 11.6, 0.4);
+  fadeIn("#grid", 18, 0.5, 0.4);
+  fadeOut("#grid", 23.6, 0.4);
+  fadeIn(".curve-axis", 0.1, 0.6);
+  draw(".curve-path", 0.15, 1.2);
+  rise(".keycard", 0.3, 0.6);
+  rise("#hook-h", 0.6, 0.7);
+  fadeIn(".curve-point", 1, 0.25);
+  draw(".fracture-path", 2.6, 0.3, "power1.in");
+  tl.to(".half-a", { x: -2, y: -1, duration: 0.3, ease: OUT }, 2.85);
+  tl.to(".half-b", { x: 2, y: 1, duration: 0.3, ease: OUT }, 2.85);
+  tl.to(".fracture-path", { opacity: 0.7, duration: 0.3, ease: OUT }, 2.9);
+  fadeOut("#s-hook", 3.6, 0.4);
+  fadeIn("#card-hndl", 4, 0.4);
+  fadeIn("#card-tnfl", 4, 0.4, 0.5);
+  rise("#card-hndl .eyebrow", 4.1, 0.5);
+  grow("#card-hndl .wire", 4.15, 0.45);
+  fadeIn("#card-hndl .node", 4.15, 0.3);
+  rise("#card-hndl .card-h", 4.4, 0.6);
+  fadeIn("#card-hndl .tstrip", 4.5, 0.4);
+  fadeIn("#card-hndl .tap", 4.85, 0.2);
+  D.rowAt.forEach((at, r) => rise('#card-hndl .arow[data-row="' + r + '"]', at, 0.3));
+  rise("#card-hndl .card-sub", 5.2, 0.6);
+  travel("#card-hndl", 6);
+  tl.to("#card-hndl .t-end", { color: "#f0a0a0", duration: 0.2 }, 6.95);
+  tl.to("#card-hndl", { opacity: 0.35, duration: 0.4, ease: IO }, 7.6);
+  tl.to("#card-tnfl", { opacity: 1, duration: 0.3, ease: OUT }, 8);
+  tl.to("#card-tnfl .idx", { color: "#29dfc4", duration: 0.3 }, 8);
+  fadeIn("#card-tnfl .eyebrow-rest", 8.05, 0.3);
+  rise("#rec-tnfl", 8.2, 0.4);
+  rise("#card-tnfl .card-h", 8.3, 0.6);
+  fadeIn("#card-tnfl .tstrip", 8.4, 0.4);
+  travel("#card-tnfl", 9);
+  rise("#card-tnfl .card-sub", 9.2, 0.6);
+  tl.to("#card-tnfl .t-end", { color: "#f0a0a0", duration: 0.2 }, 9.95);
+  grow("#rec-tnfl .act-ul", 10.35, 0.25);
+  tl.to("#rec-tnfl .badge", { opacity: 0.35, duration: 0.15, ease: "power1.in" }, 10.65);
+  tl.to("#rec-tnfl .badge", { opacity: 1, duration: 0.2, ease: OUT }, 10.8);
+  tl.to("#card-hndl", { opacity: 1, duration: 0.3, ease: OUT }, 11);
+  fadeOut("#s-threats", 11.6, 0.4);
+  logoIn("#logo-reveal", 12.4);
+  rise("#reveal-h", 13, 0.6);
+  rise("#reveal-sub", 14, 0.5);
+  grow("#reveal-rule", 15.4, 0.4);
+  rise("#reveal-spec", 15.6, 0.5);
+  fadeOut("#s-reveal", 17.6, 0.4);
+  rise("#b1-idx", 18.1, 0.5);
+  rise("#rec-launch", 18.1, 0.4);
+  rise("#b1-h", 18.2, 0.6);
+  fadeIn("#b1-visual .tstrip", 18.3, 0.4);
+  fadeIn("#rec-launch .chip-mldsa", 18.5, 0.3);
+  rise("#b1-sub", 19, 0.5);
+  travel("#b1-visual", 19);
+  tl.to("#b1-visual .t-end", { color: "#f3f7f8", duration: 0.2 }, 19.95);
+  fadeIn("#rec-launch .chip-rej", 20.3, 0.12);
+  fadeOut("#beat-1", 20.7, 0.3);
+  rise("#b2-idx", 21.1, 0.5);
+  grow("#stack .base-line", 21.1, 0.4);
+  fadeIn("#stack .base-label", 21.15, 0.3);
+  rise("#b2-h", 21.2, 0.6);
+  rise("#stack .l1", 21.3, 0.35);
+  rise("#stack .l2", 21.6, 0.35);
+  rise("#b2-sub", 22, 0.5);
+  grow("#stack .spine", 22.2, 0.7, "scaleY", IO);
+  fadeOut("#s-launched", 23.6, 0.4);
+  logoIn("#logo-end", 24);
+  rise("#end-title", 25, 0.6);
+  rise("#end-url", 25.8, 0.5);
+  rise("#end-line", 26.4, 0.5);
+  const clock = { t: 0 };
+  tl.to(clock, { t: 30, duration: 30, ease: "none", onUpdate: () => render(clock.t) }, 0);
+  window.addEventListener("hf-seek", (e) => {
+    const t = e && e.detail ? Number(e.detail.time) : NaN;
+    if (Number.isFinite(t)) render(t);
+  });
+  render(0);
+  window.__timelines = window.__timelines || {};
+  window.__timelines["main"] = tl;
+})();</script></body>
+</html>
