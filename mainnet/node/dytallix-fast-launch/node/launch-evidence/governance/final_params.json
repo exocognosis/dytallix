@@ -1,0 +1,7 @@
+{
+  "consensus.max_gas_per_block": 10000000,
+  "gas_limit": 2000,
+  "quorum_bps": 6700,
+  "threshold_bps": 5000,
+  "veto_threshold_bps": 3333
+}

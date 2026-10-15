@@ -1,0 +1,28 @@
+{
+  "proposals": [
+    {
+      "deposit_end_height": 400,
+      "description": "Test Description",
+      "id": 1,
+      "status": "VotingPeriod",
+      "submit_height": 100,
+      "tally": {
+        "abstain": "0",
+        "no": "0",
+        "no_with_veto": "0",
+        "total_voting_power": "500000000",
+        "yes": "500000000"
+      },
+      "title": "Test Proposal",
+      "total_deposit": "0",
+      "type": {
+        "parameter_change": {
+          "key": "gas_limit",
+          "value": "500000"
+        }
+      },
+      "voting_end_height": 450,
+      "voting_start_height": 150
+    }
+  ]
+}
